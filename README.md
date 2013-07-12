@@ -10,23 +10,23 @@ First install emscripten from this link: https://github.com/kripken/emscripten/w
 
 Then add it to PATH:
 
-`echo "export PATH=~/emscripten:\$PATH" >> ~/.bashrc_custom`
+<pre>echo "export PATH=~/emscripten:\$PATH" >> ~/.bashrc_custom</pre>
 
 Compiling
 ---------
 
 Now you can use this command to compile a C++ file into javascript:
 
-`emcc hello.cpp -o index.html`
+<pre>emcc hello.cpp -o index.html</pre>
 
-Or to create a asm.js version:
+Or to create an asm.js version:
 
-`emcc hello.cpp -O2 -s ASM_JS=1 -o asm.html`
+<pre>emcc hello.cpp -O2 -s ASM_JS=1 -o asm.html</pre>
 
 Hosting
 -------
 
 I'm using a node.js server to load the emcripten generated html file. Then I push them to heroku for hosting.
 
-`heroku create
-git push heroku master`
+<pre>heroku create
+git push heroku master</pre>
