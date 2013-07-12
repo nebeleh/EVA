@@ -12,9 +12,16 @@ Then add it to PATH:
 
 <pre><code>echo "export PATH=~/emscripten:\$PATH" >> ~/.bashrc_custom</code><pre>
 
+Compiling
+---------
+
 Now you can use this command to compile a C++ file into javascript:
 
 <pre><code>emcc hello.cpp -o index.html</code></pre>
+
+Or to create a asm.js version:
+
+<pre><code>emcc hello.cpp -O2 -s ASM_JS=1 -o asm.html</code></pre>
 
 Hosting
 -------
