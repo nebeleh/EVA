@@ -1,8 +1,8 @@
 {
-  "name": "node-example",
+  "name": "visualization",
   "version": "0.0.1",
   "dependencies": {
-    "express": "2.5.x"
+    "express": "3.3.x"
   },
   "engines": {
     "node": "0.8.x",
