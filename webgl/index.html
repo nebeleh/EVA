@@ -89,8 +89,11 @@
   scene.add(pointLight);
 
   // adding another source
-  pointLight.position.y = -50;
-  scene.add(pointLight);
+  var pl = new THREE.PointLight( 0xFFFFFF );
+  pl.position.x = 10;
+  pl.position.y = -50;
+  pl.position.z = 130;
+  scene.add(pl);
 
 	// draw!
 	renderer.render(scene, camera);
