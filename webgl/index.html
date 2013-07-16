@@ -86,7 +86,11 @@
 	pointLight.position.z = 130;
 
 	// add to the scene
-	scene.add(pointLight);
+  scene.add(pointLight);
+
+  // adding another source
+  pointLight.position.x = -20;
+  scence.add(pointLight);
 
 	// draw!
 	renderer.render(scene, camera);
