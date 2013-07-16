@@ -4,7 +4,7 @@ var fs = require('fs');
 var app = express.createServer(express.logger());
 
 app.get('/', function(request, response) {
-  var buffer = fs.readFileSync('webgl/index.html');
+  var buffer = fs.readFileSync('webgl/test.html');
   response.send(buffer.toString());
 });
 
