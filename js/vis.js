@@ -1,6 +1,6 @@
 var WIDTH = 800, HEIGHT = 600;
 var VIEW_ANGLE = 45, ASPECT = WIDTH / HEIGHT, NEAR = 0.1, FAR = 10000;
-var renderer, camera, scence;
+var renderer, camera, scence, mesh;
 
 function init($container) {
   renderer = new THREE.WebGLRenderer();
@@ -26,11 +26,14 @@ function init($container) {
 }
 
 function addShape() {
-  var material = new THREE.MeshLambertMaterial({color: 0xCC00CC});
-  var sphere = new THREE.Mesh(new THREE.SphereGeometry(50, 16, 16), material);
-  scene.add(sphere);
+  var material = new THREE.MeshLambertMaterial({color: 0xCC0000});
+  mesh = new THREE.Mesh(new THREE.SphereGeometry(50, 16, 16), material);
+  scene.add(mesh);
 }
 
 function animate() {
+  requestAnimationFrame(animate);
+  mesh.position.x += 2;
+  mesh.position.y += 2;
   renderer.render(scene, camera);
 }
