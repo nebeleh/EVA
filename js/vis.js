@@ -31,9 +31,18 @@ function addShape() {
   scene.add(mesh);
 }
 
+var x = 2.3, y = 2.2, z = 2.1;
+
 function animate() {
   requestAnimationFrame(animate);
-  mesh.position.x += 2;
-  mesh.position.y += 2;
+  
+  if (mesh.position.x > 50 || mesh.position.x < -50) { x *= -1; }
+  if (mesh.position.y > 50 || mesh.position.y < -50) { y *= -1; }
+  if (mesh.position.z > 50 || mesh.position.z < -50) { z *= -1; }
+  // playing with the ball
+  mesh.position.x += x;
+  mesh.position.y += y;
+  mesh.position.z += z;
+  
   renderer.render(scene, camera);
 }
