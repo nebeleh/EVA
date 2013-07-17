@@ -15,5 +15,3 @@
 # vim swap file
 *.swp
 
-# node
-node_modules
