@@ -11,6 +11,9 @@ function init($container) {
   $container.append(renderer.domElement);
 
   scene.add(camera);
+  
+  var light = new THREE.AmbientLight( 0x404040 ); // soft white light
+  scene.add(light);
 
   var pl1 = new THREE.PointLight( 0xFFFFFF );
   pl1.position.x = 10;
@@ -18,11 +21,11 @@ function init($container) {
   pl1.position.z = 130;
   scene.add(pl1);
 
-  var pl2 = new THREE.PointLight( 0xFFFFFF );
+  /*var pl2 = new THREE.PointLight( 0xFFFFFF );
   pl2.position.x = 10;
   pl2.position.y = -50;
   pl2.position.z = 130;
-  scene.add(pl2);
+  scene.add(pl2);*/
 }
 
 function addShape() {
@@ -31,7 +34,7 @@ function addShape() {
   scene.add(mesh);
 }
 
-var x = 2.3, y = 2.2, z = 2.1;
+var x = 1.3, y = 1.2, z = 1.1;
 
 function animate() {
   requestAnimationFrame(animate);
