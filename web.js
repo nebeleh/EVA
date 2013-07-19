@@ -12,7 +12,7 @@ app.configure(function() {
   app.use('/js', express.static(__dirname + '/js'));
 })
 
-var port = process.env.PORT || 5000;
-app.listen(port, function() {
+var port = process.env.PORT || 8080;
+  app.listen(port, function() {
   console.log("Listening on " + port);
 });

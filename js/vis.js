@@ -1,9 +1,12 @@
-var WIDTH = 800, HEIGHT = 600;
+var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
 var VIEW_ANGLE = 45, ASPECT = WIDTH / HEIGHT, NEAR = 0.1, FAR = 10000;
 var renderer, camera, scence, mesh;
 
 function init($container) {
-  renderer = new THREE.WebGLRenderer();
+  if (window.WebGLRenderingContext)
+    renderer = new THREE.WebGLRenderer();
+  else
+    renderer = new THREE.CanvasRenderer();
   camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
   scene = new THREE.Scene();
   camera.position.z = 600;
@@ -11,6 +14,7 @@ function init($container) {
   $container.append(renderer.domElement);
 
   scene.add(camera);
+  calcWindowResize(renderer,camera);
 
   // LIGHTS
   hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
@@ -39,13 +43,27 @@ function init($container) {
   //dirLight.shadowCameraVisible = true;
 }
 
+function calcWindowResize(renderer, camera) {
+  var callback = function(){
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize',callback,false);
+  return {
+    stop : function(){
+      window.removeEventListener('resize',callback);
+    }
+  };
+}
+
 function addShape() {
   var material = new THREE.MeshLambertMaterial({color: 0xCC0000});
-  mesh = new THREE.Mesh(new THREE.SphereGeometry(50, 16, 16), material);
+  mesh = new THREE.Mesh(new THREE.SphereGeometry(20, 16, 16), material);
   scene.add(mesh);
 }
 
-var x = .3, y = .2, z = .1, w = 100;
+var x = 0, y = 0, z = 0, w = 200;
 
 function animate() {
   requestAnimationFrame(animate);
