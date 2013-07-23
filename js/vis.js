@@ -1,29 +1,52 @@
-var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
-var VIEW_ANGLE = 45, ASPECT = WIDTH / HEIGHT, NEAR = 0.1, FAR = 10000;
-var renderer, camera, scence, mesh;
+// used code from http://stemkoski.github.io/Three.js/Graphulus-Surface.html
+
+var renderer, camera, scence, controls, mesh, stats, material;
 
 function init($container) {
+  // scene
+  scene = new THREE.Scene();
+  
+  // stats
+  stats = new Stats();
+  stats.domElement.style.position = 'absolute';
+  stats.domElement.style.top = '0px';
+  stats.domElement.style.left = '0px';
+  stats.domElement.style.zIndex = 100;
+  $container.append( stats.domElement );
+
+  // camera
+  var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
+  var VIEW_ANGLE = 45, ASPECT = WIDTH / HEIGHT, NEAR = 0.1, FAR = 10000;
+  camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+  camera.position.set(-10,-10,10);
+  camera.lookAt(scene.position);  
+  camera.up = new THREE.Vector3( 0, 0, 1 );
+  scene.add(camera);
+  
+  // renderer
   if (window.WebGLRenderingContext)
     renderer = new THREE.WebGLRenderer();
   else
     renderer = new THREE.CanvasRenderer();
-  camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
-  scene = new THREE.Scene();
-  camera.position.z = 600;
   renderer.setSize(WIDTH, HEIGHT);
+  renderer.domElement.style.position = 'absolute';
+  renderer.domElement.style.top = '0px';
+  renderer.domElement.style.left = '0px';
+  renderer.domElement.style.zIndex = 0;
   $container.append(renderer.domElement);
-
-  scene.add(camera);
+  
+  // events
   calcWindowResize(renderer,camera);
-
-  // LIGHTS
-  hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
+  
+  // lights
+  var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
   hemiLight.color.setHSL( 0.6, 1, 0.6 );
+  //hemiLight.color.setHSL( .8, .8, .8 );
   hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
   hemiLight.position.set( 0, 500, 0 );
   scene.add( hemiLight );
 
-  dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+  var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
   dirLight.color.setHSL( 0.1, 1, 0.95 );
   dirLight.position.set( -1, 1.75, 1 );
   dirLight.position.multiplyScalar( 50 );
@@ -40,7 +63,16 @@ function init($container) {
   dirLight.shadowCameraFar = 3500;
   dirLight.shadowBias = -0.0001;
   dirLight.shadowDarkness = 0.35;
-  //dirLight.shadowCameraVisible = true;
+  
+  var dirLight2 = dirLight.clone();
+  dirLight2.position.set( 1, -1.75, -1 );
+  scene.add( dirLight2 );
+  
+  // add helper
+  scene.add( new THREE.AxisHelper() );
+  
+  // controls
+  controls = new THREE.TrackballControls( camera, renderer.domElement );
 }
 
 function calcWindowResize(renderer, camera) {
@@ -58,23 +90,39 @@ function calcWindowResize(renderer, camera) {
 }
 
 function addShape() {
-  var material = new THREE.MeshLambertMaterial({color: 0xCC0000});
-  mesh = new THREE.Mesh(new THREE.SphereGeometry(20, 16, 16), material);
+  var uMax = 10, uMin = 0, vMax = 10, vMin = 0, segments = 300;
+  var parFunc = function(u0,v0)
+  {
+    var u = uMax*u0 + uMin;
+    var v = vMax*v0 + vMin;
+    var x = u;
+    var y = v;
+    var z = Math.sin(x*y);
+    return new THREE.Vector3(x,y,z);
+  };
+  var geom = new THREE.ParametricGeometry(parFunc, segments, segments, true);
+  if (mesh) {
+    scene.remove(mesh);
+  }
+  
+  // front side
+  material = new THREE.MeshLambertMaterial({color: 0xFF0000, side: THREE.FrontSide});
+  mesh = new THREE.Mesh(geom,material);
+  scene.add(mesh);
+  
+  // back side -- for increasing speed, use THREE.DoubleSide and disable this part
+  material = new THREE.MeshLambertMaterial({color: 0xD358F7, side: THREE.BackSide});
+  mesh = new THREE.Mesh(geom,material);
   scene.add(mesh);
 }
 
-var x = 0, y = 0, z = 0, w = 200;
-
 function animate() {
   requestAnimationFrame(animate);
-  
-  if (mesh.position.x > w || mesh.position.x < -w) { x *= -1; }
-  if (mesh.position.y > w || mesh.position.y < -w) { y *= -1; }
-  if (mesh.position.z > w || mesh.position.z < -w) { z *= -1; }
-  // playing with the ball
-  mesh.position.x += x;
-  mesh.position.y += y;
-  mesh.position.z += z;
-  
   renderer.render(scene, camera);
+  update();
+}
+
+function update() {
+  controls.update();
+  stats.update();
 }
