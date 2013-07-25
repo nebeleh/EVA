@@ -73,6 +73,12 @@ function init($container) {
   
   // controls
   controls = new THREE.TrackballControls( camera, renderer.domElement );
+  
+  // add xy-plane
+  var floorMaterial = new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true, side: THREE.DoubleSide});
+  var floorGeom = new THREE.PlaneGeometry(20,20,20,20);
+  var floor = new THREE.Mesh(floorGeom, floorMaterial);
+  scene.add(floor);
 }
 
 function calcWindowResize(renderer, camera) {
