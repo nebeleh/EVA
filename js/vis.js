@@ -79,6 +79,10 @@ function init($container) {
   var floorGeom = new THREE.PlaneGeometry(20,20,20,20);
   var floor = new THREE.Mesh(floorGeom, floorMaterial);
   scene.add(floor);
+  
+  // start drawing
+  drawArray();
+  animate();
 }
 
 function calcWindowResize(renderer, camera) {
@@ -95,18 +99,19 @@ function calcWindowResize(renderer, camera) {
   };
 }
 
-function addShape() {
-  var uMax = 10, uMin = 0, vMax = 10, vMin = 0, segments = 300;
-  var parFunc = function(u0,v0)
-  {
-    var u = uMax*u0 + uMin;
-    var v = vMax*v0 + vMin;
-    var x = u;
-    var y = v;
-    var z = Math.sin(x*y);
-    return new THREE.Vector3(x,y,z);
-  };
-  var geom = new THREE.ParametricGeometry(parFunc, segments, segments, true);
+function drawArray() {
+  var datasize = 50;
+  var buffer = new ArrayBuffer(8*datasize);
+  var data = new Float64Array(buffer);
+  
+  // creating a random walk dataset 
+  data[0] = 0;
+  for (var i=1; i<data.length; i++) {
+    data[i] = data[i-1]+(Math.random()-0.5)*0.5;
+  }
+  
+  var geom = new arrayGeometry(data);
+
   if (mesh) {
     scene.remove(mesh);
   }
@@ -121,6 +126,60 @@ function addShape() {
   mesh = new THREE.Mesh(geom,material);
   scene.add(mesh);
 }
+
+// creates a 3D geometry based on the input array
+function arrayGeometry(data) {
+
+	THREE.Geometry.call( this );
+
+	var verts = this.vertices;
+	var faces = this.faces;
+	var uvs = this.faceVertexUvs[ 0 ];
+  
+  var xMax = 10, xMin = 0, yMax = 10, yMin = 0, segments = 500, iMin = 0;
+  var iMax, x, y, z;
+  var P = 0, Q = 0, R = 0;
+  var a,b,c,d,i;
+  for (y=yMin;y<=yMax;y+=(yMax-yMin)/segments)
+  {
+    iMax = (y-yMin)/(yMax-yMin)*(data.length-iMin)+iMin;
+    Q = verts.length;
+    for (i=0;i<iMax;i++)
+    {
+      x = i*(xMax-xMin)/iMax+xMin;
+      verts.push(new THREE.Vector3(x,y,data[i]));
+    }
+    //verts.push(new THREE.Vector3(xMax,y,data[i-1]));
+    R = verts.length-1;
+    // adding faces
+    if (y>yMin)
+    {
+      var p;
+      for (p=P; p<=Q-2; p++)
+      {
+        a = p;
+        b = p+1;
+        c = p+(Q-P)+1;
+        d = p+(Q-P);
+        faces.push(new THREE.Face4(a,b,c,d));
+      }
+      a = p;
+      for (var q=Q-P+p;q<=R-1;q++)
+      {
+        b = q+1;
+        c = q;
+        faces.push(new THREE.Face3(a,b,c));
+      }
+      P = Q;
+    }
+  }
+
+	this.computeCentroids();
+	this.computeFaceNormals();
+	this.computeVertexNormals();
+}
+
+arrayGeometry.prototype = Object.create(THREE.Geometry.prototype);
 
 function animate() {
   requestAnimationFrame(animate);
