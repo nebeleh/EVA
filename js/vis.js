@@ -100,7 +100,7 @@ function calcWindowResize(renderer, camera) {
 }
 
 function drawArray() {
-  var datasize = 50;
+  var datasize = 500;
   var buffer = new ArrayBuffer(8*datasize);
   var data = new Float64Array(buffer);
   
