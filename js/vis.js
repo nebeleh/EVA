@@ -149,7 +149,7 @@ function arrayGeometry(data) {
       x = i*(xMax-xMin)/iMax+xMin;
       verts.push(new THREE.Vector3(x,y,data[i]));
     }
-    //verts.push(new THREE.Vector3(xMax,y,data[i-1]));
+    verts.push(new THREE.Vector3(xMax,y,data[i-1]));
     R = verts.length-1;
     // adding faces
     if (y>yMin)
