@@ -1,6 +1,7 @@
 // used code from http://stemkoski.github.io/Three.js/Graphulus-Surface.html
 
 var renderer, camera, scence, controls, stats;
+var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 
 function init($container) {
   // scene
@@ -14,30 +15,21 @@ function init($container) {
   stats.domElement.style.zIndex = 100;
   $container.append( stats.domElement );
 
-  // camera
-  var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
-  var VIEW_ANGLE = 45, ASPECT = WIDTH / HEIGHT, NEAR = 0.1, FAR = 10000;
-  camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
-  //camera = new THREE.OrthographicCamera(WIDTH/-2, WIDTH/2, HEIGHT/2, HEIGHT/-2, NEAR, FAR);
-  camera.position.set(-10,-10,10);
-  camera.lookAt(scene.position);  
-  camera.up = new THREE.Vector3( 0, 0, 1 );
-  scene.add(camera);
-  
   // renderer
   if (window.WebGLRenderingContext)
     renderer = new THREE.WebGLRenderer();
   else
     renderer = new THREE.CanvasRenderer();
-  renderer.setSize(WIDTH, HEIGHT);
+  renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.domElement.style.position = 'absolute';
-  renderer.domElement.style.top = '0px';
+  renderer.domElement.style.top = '20px';
   renderer.domElement.style.left = '0px';
   renderer.domElement.style.zIndex = 0;
   $container.append(renderer.domElement);
   
-  // events
-  calcWindowResize(renderer,camera);
+  // camera
+  setCameraType("perspective");
+  scene.add(camera);
   
   // lights
   var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
@@ -72,15 +64,12 @@ function init($container) {
   // add helper
   scene.add( new THREE.AxisHelper() );
   
-  // controls
-  controls = new THREE.TrackballControls( camera, renderer.domElement );
-  
   // add xy-plane
   var floorMaterial = new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true, side: THREE.DoubleSide});
   var floorGeom = new THREE.PlaneGeometry(20,20,20,20);
   var floor = new THREE.Mesh(floorGeom, floorMaterial);
   //scene.add(floor);
-  
+
   // start drawing
   draw();
   animate();
@@ -117,10 +106,10 @@ function draw()
   scene.add(line);
 
   // adding datapoints
-  var dataMaterial = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.6});
+  var dataMaterial = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.3});
   for (var i = 0; i < points.length; i++)
   {
-    if (Math.random() < 0.7) continue;
+    if (Math.random() < 0.9) continue;
     var dataMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2,100,100), dataMaterial);
     dataMesh.position.set(points[i].x, points[i].y, points[i].z);
     scene.add(dataMesh);
@@ -130,8 +119,17 @@ function draw()
 function calcWindowResize(renderer, camera)
 {
   var callback = function(){
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.aspect = window.innerWidth / window.innerHeight;
+    var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
+    renderer.setSize(WIDTH, HEIGHT);
+    if (camera instanceof THREE.PerspectiveCamera)
+    {
+      camera.aspect = WIDTH/HEIGHT;
+    } else {
+      camera.left = - WIDTH/ORTHOSCALE;
+      camera.right = WIDTH/ORTHOSCALE;
+      camera.top = HEIGHT/ORTHOSCALE;
+      camera.bottom = - HEIGHT/ORTHOSCALE;
+    }
     camera.updateProjectionMatrix();
   }
   window.addEventListener('resize',callback,false);
@@ -154,3 +152,28 @@ function update()
   controls.update();
   stats.update();
 }
+
+function setCameraType(type)
+{
+  var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
+
+  if (type === "perspective")
+  {
+    camera = new THREE.PerspectiveCamera(VIEW_ANGLE, WIDTH/HEIGHT, NEAR, FAR);
+  }
+  else
+  {
+    camera = new THREE.OrthographicCamera(-WIDTH/ORTHOSCALE, WIDTH/ORTHOSCALE, HEIGHT/ORTHOSCALE, -HEIGHT/ORTHOSCALE, ORTHONEAR, ORTHOFAR);
+  }
+
+  camera.position.set(-10,-10,10);
+  camera.lookAt(scene.position);  
+  camera.up = new THREE.Vector3( 0, 0, 1 );
+
+  // events
+  calcWindowResize(renderer, camera);
+  
+  // controls
+  controls = new THREE.TrackballControls(camera, renderer.domElement);
+}
+
