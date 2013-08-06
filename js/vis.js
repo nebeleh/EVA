@@ -3,17 +3,13 @@
 var renderer, camera, scence, controls, stats;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 
-function init($container) {
+function init($container, $stat) {
   // scene
   scene = new THREE.Scene();
   
   // stats
   stats = new Stats();
-  stats.domElement.style.position = 'absolute';
-  stats.domElement.style.top = '0px';
-  stats.domElement.style.left = '0px';
-  stats.domElement.style.zIndex = 100;
-  $container.append( stats.domElement );
+  $stat.append(stats.domElement);
 
   // renderer
   if (window.WebGLRenderingContext)
@@ -21,10 +17,6 @@ function init($container) {
   else
     renderer = new THREE.CanvasRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.domElement.style.position = 'absolute';
-  renderer.domElement.style.top = '20px';
-  renderer.domElement.style.left = '0px';
-  renderer.domElement.style.zIndex = 0;
   $container.append(renderer.domElement);
   
   // camera

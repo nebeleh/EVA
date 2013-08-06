@@ -3,25 +3,61 @@
   <head>
     <meta charset="utf-8" />
     <title>Visualization</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css">
     <style>
+      #stat {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 50;
+      }
+      #params {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 100;
+      }
       #container {
-        width: 800px;
-        height: 600px;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        z-index: 0;
       }
     </style>
+    <script src="http://code.jquery.com/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/js/bootstrap.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/vis.js"></script>
+    <script src="js/TrackballControls.js"></script>
+    <script src="js/stats.min.js"></script>
   </head>
   <body>
-    dummy text dummy text
-    <a href="#" onclick="setCameraType('orthographic');return false;">ortho</a>
-    <a href="#" onclick="setCameraType('perspective');return false;">pers</a>
     <div id="container"></div>
+    <div id="stat"></div>
+    <div id="params">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Camera Type</h3>
+        </div>
+        <form>
+          <div class="radio">
+            <label>
+              <input type="radio" name="cameraRadios" id="perspectiveRadio" onclick="setCameraType('perspective');" checked>Perspective
+            </label>
+          </div>
+
+          <div class="radio">
+            <label>
+              <input type="radio" name="cameraRadios" id="orthographicRadio" onclick="setCameraType('orthographic');">Orthographic
+            </label>
+          </div>
+        </form>
+      </div>
+    </div>
   </body>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
-  <script src="js/three.min.js"></script>
-  <script src="js/vis.js"></script>
-  <script src="js/TrackballControls.js"></script>
-  <script src="js/stats.min.js"></script>
-  <script type="text/javascript">
-    init($('#container'));
- </script>
+  <script>
+    $(document).ready(function(){
+      init($('#container'), $('#stat'));
+    });
+  </script>
 </html>
