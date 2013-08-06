@@ -6,7 +6,7 @@ var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, 
 function init($container, $stat) {
   // scene
   scene = new THREE.Scene();
-  
+
   // stats
   stats = new Stats();
   $stat.append(stats.domElement);
@@ -17,12 +17,16 @@ function init($container, $stat) {
   else
     renderer = new THREE.CanvasRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.domElement.style.position = 'absolute';
+  renderer.domElement.style.top = '0px';
+  renderer.domElement.style.left = '0px';
+  renderer.domElement.style.zIndex = 0;
   $container.append(renderer.domElement);
-  
+
   // camera
   setCameraType("perspective");
   scene.add(camera);
-  
+
   // lights
   var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
   hemiLight.color.setHSL( 0.6, 1, 0.6 );
@@ -48,29 +52,28 @@ function init($container, $stat) {
   dirLight.shadowCameraFar = 3500;
   dirLight.shadowBias = -0.0001;
   dirLight.shadowDarkness = 0.35;
-  
+
   var dirLight2 = dirLight.clone();
   dirLight2.position.set( 1, -1.75, -1 );
   scene.add( dirLight2 );
-  
+
   // add helper
   scene.add( new THREE.AxisHelper() );
-  
+
   // add xy-plane
   var floorMaterial = new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true, side: THREE.DoubleSide});
   var floorGeom = new THREE.PlaneGeometry(20,20,20,20);
   var floor = new THREE.Mesh(floorGeom, floorMaterial);
   //scene.add(floor);
 
-  // start drawing
-  draw();
+  // start animating
   animate();
 }
 
-function draw()
+function draw(r)
 {
   // making a coil
-  var points = [], i = 0, r = 4, f = 1, minZ = -10, maxZ = 10;
+  var points = [], i = 0, f = 1, minZ = -10, maxZ = 10;
   for (var z = minZ; z <= maxZ; z += 0.1/f)
   {
     points[i++] = new THREE.Vector3(r*Math.sin(z*f*Math.PI), r-r*Math.cos(z*f*Math.PI), z);
@@ -92,7 +95,7 @@ function draw()
   }
 
   geometry.colors = colors;
-  var material = new THREE.LineBasicMaterial({color: 0xffffff, opacity: 1,  linewidth: 3, vertexColors: THREE.VertexColors});
+  var material = new THREE.LineBasicMaterial({color: 0xffffff, opacity: 1,  linewidth: 1, vertexColors: THREE.VertexColors});
 
   var line = new THREE.Line(geometry, material);
   scene.add(line);
@@ -164,7 +167,7 @@ function setCameraType(type)
 
   // events
   calcWindowResize(renderer, camera);
-  
+
   // controls
   controls = new THREE.TrackballControls(camera, renderer.domElement);
 }

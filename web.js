@@ -10,6 +10,7 @@ app.get('/', function(request, response) {
 
 app.configure(function() {
   app.use('/js', express.static(__dirname + '/js'));
+  app.use('/css', express.static(__dirname + '/css'));
 })
 
 var port = process.env.PORT || 8080;
