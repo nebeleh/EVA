@@ -2,8 +2,9 @@
 
 var renderer, camera, scence, controls, stats;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
+var lineGeom = null, datapointsMesh = [], line;
 
-function init($container, $stat) {
+function init($container, $stat, r) {
   // scene
   scene = new THREE.Scene();
 
@@ -30,7 +31,6 @@ function init($container, $stat) {
   // lights
   var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
   hemiLight.color.setHSL( 0.6, 1, 0.6 );
-  //hemiLight.color.setHSL( .8, .8, .8 );
   hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
   hemiLight.position.set( 0, 500, 0 );
   scene.add( hemiLight );
@@ -61,54 +61,76 @@ function init($container, $stat) {
   scene.add( new THREE.AxisHelper() );
 
   // add xy-plane
-  var floorMaterial = new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true, side: THREE.DoubleSide});
+  /*var floorMaterial = new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true, side: THREE.DoubleSide});
   var floorGeom = new THREE.PlaneGeometry(20,20,20,20);
   var floor = new THREE.Mesh(floorGeom, floorMaterial);
-  //scene.add(floor);
+  scene.add(floor);*/
 
   // start animating
+  initialDraw(r);
   animate();
+}
+
+
+function initialDraw(r)
+{
+  // making a coil
+  lineGeo = new THREE.Geometry();
+  var f = 1, minZ = -10, maxZ = 10;
+  for (var z = minZ, i = 0; z <= maxZ; z += 0.01/f, i++)
+  {
+    lineGeo.vertices[i] = new THREE.Vector3(r*Math.sin(z*f*Math.PI), r-r*Math.cos(z*f*Math.PI), z);
+    lineGeo.colors[i] = new THREE.Color(0x000000);
+    (lineGeo.vertices[i].z > 0) ? lineGeo.colors[i].setHSL(0.3, 1.0, 0.75*lineGeo.vertices[i].z/maxZ) : lineGeo.colors[i].setHSL(0.6, 1.0, -0.75*lineGeo.vertices[i].z/maxZ);
+  }
+
+  // adding the line to scene
+  var material = new THREE.LineBasicMaterial({opacity: 1,  linewidth: 1, vertexColors: THREE.VertexColors});
+  line = new THREE.Line(lineGeo, material);
+  scene.add(line);
+
+  // adding datapoints
+/*  var dataMaterial = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.3});
+  for (var i = 0; i < points.length; i++)
+  {
+    if (Math.random() < 0.9) continue;
+    var dataGeo = new THREE.SphereGeometry(0.2,100,100);
+    var dataMesh = new THREE.Mesh(dataGeo, dataMaterial);
+    datapointsMesh.push(dataMesh);
+    dataMesh.position.set(points[i].x, points[i].y, points[i].z);
+    scene.add(dataMesh);
+  }*/
 }
 
 function draw(r)
 {
-  // making a coil
-  var points = [], i = 0, f = 1, minZ = -10, maxZ = 10;
-  for (var z = minZ; z <= maxZ; z += 0.1/f)
+  /*var f = 1, minZ = -10, maxZ = 10;
+  for (var z = minZ, i = 0; z <= maxZ; z += 0.01/f, i++)
   {
-    points[i++] = new THREE.Vector3(r*Math.sin(z*f*Math.PI), r-r*Math.cos(z*f*Math.PI), z);
-  }
-
-  // creating the spline
-  var geometry = new THREE.Geometry();
-  var segments = 10;
-  var spline = new THREE.Spline(points);
-
-  var index, position, colors = [];
-  for (var i=0; i<points.length * segments; i++)
+    lineGeo.vertices[i] = new THREE.Vector3(r*Math.sin(z*f*Math.PI), r-r*Math.cos(z*f*Math.PI), z);
+  }*/
+  var T = lineGeo.vertices.length;
+  var a;
+  var Z = 5;
+  var F = r-1;
+  var D = 0.01;
+  lineGeo.vertices[0] = new THREE.Vector3(0, 0, 0);
+  for (var i = 1; i < T; i++)
   {
-    index = i / (points.length * segments);
-    position = spline.getPoint(index);
-    geometry.vertices[i] = new THREE.Vector3(position.x, position.y, position.z);
-    colors[i] = new THREE.Color(0xffffff);
-    (position.z > 0) ? colors[i].setHSL(0.3, 1.0, 0.75*position.z/maxZ) : colors[i].setHSL(0.6, 1.0, -0.75*position.z/maxZ);
+    a = 2 * Math.PI * F / (T-1);
+    lineGeo.vertices[i] = new THREE.Vector3( Math.cos(i*a) + lineGeo.vertices[i-1].x, Math.sin(i*a) + lineGeo.vertices[i-1].y, i / (T-1) * Z);
   }
-
-  geometry.colors = colors;
-  var material = new THREE.LineBasicMaterial({color: 0xffffff, opacity: 1,  linewidth: 1, vertexColors: THREE.VertexColors});
-
-  var line = new THREE.Line(geometry, material);
-  scene.add(line);
-
-  // adding datapoints
-  var dataMaterial = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.3});
-  for (var i = 0; i < points.length; i++)
+  for (var i = 1; i < T; i++)
   {
-    if (Math.random() < 0.9) continue;
-    var dataMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2,100,100), dataMaterial);
-    dataMesh.position.set(points[i].x, points[i].y, points[i].z);
-    scene.add(dataMesh);
+    lineGeo.vertices[i].x *= D;
+    lineGeo.vertices[i].y *= D;
   }
+  lineGeo.verticesNeedUpdate = true;
+  /*for (var i = 0; i < datapointsMesh.length; i++)
+  {
+    datapointsMesh[i].position.x += (r-5)*0.1;
+    datapointsMesh[i].verticesNeedUpdate = true;
+  }*/
 }
 
 function calcWindowResize(renderer, camera)

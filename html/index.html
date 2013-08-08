@@ -52,14 +52,13 @@
   </body>
   <script>
     $(document).ready(function(){
-      init($('#drawCanvas'), $('#stat'));
-      draw($('#radiusSlider').attr('data-slider-value'));
+      init($('#drawCanvas'), $('#stat'), $('#radiusSlider').attr('data-slider-value'));
 
       var oldR = -1;
       var changeRadius = function() {
         var r = radius.getValue();
         if (r != oldR) {
-          //draw(r);
+          draw(r);
           oldR = r;
         }
       };
