@@ -19,26 +19,7 @@
     <div id="stat"></div>
     <div id="drawCanvas"></div>
 
-    <div id="params">
-
-      <div class="panel panel-primary">
-        <div class="panel-heading">
-          <h3 class="panel-title">Camera Type</h3>
-        </div>
-        <form>
-          <div class="radio">
-            <label>
-              <input type="radio" name="cameraRadios" id="perspectiveRadio" onclick="setCameraType('perspective');" checked>Perspective
-            </label>
-          </div>
-
-          <div class="radio">
-            <label>
-              <input type="radio" name="cameraRadios" id="orthographicRadio" onclick="setCameraType('orthographic');">Orthographic
-            </label>
-          </div>
-        </form>
-      </div>
+    <div id="params1">
 
       <div class="panel panel-success">
         <div class="panel-heading">
@@ -56,28 +37,28 @@
               <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="10" data-slider-step="0.1" data-slider-value="10" id="dSlider" data-slider-id="DS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
             </td>
             <tr>
-              <td>Z</td>
-              <td>F</td>
-              <td>D</td>
+              <td data-toggle="tooltip" title="Z value of the last data point">H</td>
+              <td data-toggle="tooltip" title="Number of cycles">C</td>
+              <td data-toggle="tooltip" title="Distance between two consecutive datapoints">D</td>
             </tr>
           </table>
         </div>
 
-        <div class="panel panel-info">
+        <div class="panel panel-warning">
           <div class="panel-heading">
             <h3 class="panel-title">Information</h3>
           </div>
           <table class="table table-striped">
             <tr>
-              <td><b>Z</b></td>
+              <td><b>Height</b></td>
               <td id="Zindicator"></td>
             </tr>
             <tr>
-              <td><b>F</b></td>
+              <td><b>Cycles</b></td>
               <td id="Findicator"></td>
             </tr>
-             <tr>
-              <td><b>D</b></td>
+            <tr>
+              <td><b>Distance</b></td>
               <td id="Dindicator"></td>
             </tr>
           </table>
@@ -85,9 +66,68 @@
 
       </div>
 
+      <div id="params2">
+
+        <div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">Camera Type</h3>
+          </div>
+          <form>
+            <div class="radio">
+              <label>
+                <input type="radio" name="cameraRadios" id="perspectiveRadio" onclick="setCameraType('perspective');" checked>Perspective
+              </label>
+            </div>
+
+            <div class="radio">
+              <label>
+                <input type="radio" name="cameraRadios" id="orthographicRadio" onclick="setCameraType('orthographic');">Orthographic
+              </label>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel panel-info">
+          <div class="panel-heading">
+            <h3 class="panel-title">Settings</h3>
+          </div>
+          <form>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>
+                Axis Helper
+              </label>
+            </div>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setGridXY(this.checked);">
+                Grid XY Helper
+              </label>
+            </div>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setGridXZ(this.checked);">
+                Grid XZ Helper
+              </label>
+            </div>
+             <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setGridYZ(this.checked);">
+                Grid YZ Helper
+              </label>
+            </div>
+          </form>
+        </div>
+
+      </div>
+
     </body>
     <script>
       $(document).ready(function(){
+
+        $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
+
+
         var oldZ = -100, oldF = -100, oldD = -100, z, f, d;
 
         var getSliderVals = function() {
@@ -114,7 +154,7 @@
             oldF = f;
           }
         };
-  
+
         var Z = $('#zSlider').slider()
         .on('slide', changed)
         .data('slider');
@@ -128,8 +168,8 @@
         .data('slider');
 
         getSliderVals();
-        
+
         init($('#drawCanvas'), $('#stat'));
-     });
+      });
     </script>
   </html>

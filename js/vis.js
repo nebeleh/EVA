@@ -1,6 +1,6 @@
 // used code from http://stemkoski.github.io/Three.js/Graphulus-Surface.html
 
-var renderer, camera, scence, controls, stats;
+var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var lineGeom = null, datapointsMesh = [];
 
@@ -57,8 +57,8 @@ function init($container, $stat) {
   dirLight2.position.set( 1, -1.75, -1 );
   scene.add( dirLight2 );
 
-  // add helper
-  scene.add( new THREE.AxisHelper() );
+  // add axisHelper
+  setAxisHelper(true);
 
   // add xy-plane
   /*var floorMaterial = new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true, side: THREE.DoubleSide});
@@ -186,3 +186,52 @@ function setCameraType(type)
   controls = new THREE.TrackballControls(camera, renderer.domElement);
 }
 
+function setAxisHelper(s)
+{
+  if(s) {
+    axisHelper = new THREE.AxisHelper();
+    scene.add(axisHelper);
+  } else {
+    scene.remove(axisHelper);
+  }
+}
+
+var gridXY, gridXZ, gridYZ;
+
+function setGridXY(s)
+{
+  if(s) {
+    gridXY = new THREE.GridHelper(5,1);
+    gridXY.position.set(0, 0, 0);
+    gridXY.rotation.x = Math.PI/2;
+    gridXY.setColors( new THREE.Color(0xaaaa00), new THREE.Color(0xaaaa00) );
+    scene.add(gridXY);
+  } else {
+    scene.remove(gridXY);
+  }
+}
+
+function setGridXZ(s)
+{
+  if(s) {
+    gridXZ = new THREE.GridHelper(5,1);
+    gridXZ.setColors( new THREE.Color(0xaa00aa), new THREE.Color(0xaa00aa) );
+    gridXZ.position.set(0, 0, 0);
+    scene.add(gridXZ);
+  } else {
+    scene.remove(gridXZ);
+  }
+}
+
+function setGridYZ(s)
+{
+  if(s) {
+    gridYZ = new THREE.GridHelper(5,1);
+    gridYZ.position.set(0, 0, 0);
+    gridYZ.rotation.z = Math.PI/2;
+    gridYZ.setColors( new THREE.Color(0x00aaaa), new THREE.Color(0x00aaaa) );
+    scene.add(gridYZ);
+  } else {
+    scene.remove(gridYZ);
+  }
+}
