@@ -2,7 +2,7 @@
 
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var lineGeom = null, datapointsMesh = [];
+var lineGeom = null, datapointsMesh = [], datapointsIndex = [];
 
 function init($container, $stat) {
   // scene
@@ -60,12 +60,6 @@ function init($container, $stat) {
   // add axisHelper
   setAxisHelper(true);
 
-  // add xy-plane
-  /*var floorMaterial = new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true, side: THREE.DoubleSide});
-  var floorGeom = new THREE.PlaneGeometry(20,20,20,20);
-  var floor = new THREE.Mesh(floorGeom, floorMaterial);
-  scene.add(floor);*/
-
   // start animating
   initialDraw();
   animate();
@@ -76,7 +70,7 @@ function initialDraw()
 {
   // making a coil
   lineGeo = new THREE.Geometry();
-  var T = 100, D = 0.1;
+  var T = 10000, D = 0.1;
   for (var i = 0; i < T; i++)
   {
     lineGeo.vertices[i] = new THREE.Vector3(i*D, 0, 0);
@@ -90,16 +84,17 @@ function initialDraw()
   scene.add(line);
 
   // adding datapoints
-/*  var dataMaterial = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.3});
-  for (var i = 0; i < points.length; i++)
+  var dataMaterial = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.3});
+  for (var i = 0; i < lineGeo.vertices.length; i++)
   {
-    if (Math.random() < 0.9) continue;
-    var dataGeo = new THREE.SphereGeometry(0.2,100,100);
+    if (Math.random() < 0.92) continue;
+    var dataGeo = new THREE.SphereGeometry(0.2);
     var dataMesh = new THREE.Mesh(dataGeo, dataMaterial);
     datapointsMesh.push(dataMesh);
-    dataMesh.position.set(points[i].x, points[i].y, points[i].z);
+    datapointsIndex.push(i);
+    dataMesh.position.set(lineGeo.vertices[i].x, lineGeo.vertices[i].y, lineGeo.vertices[i].z);
     scene.add(dataMesh);
-  }*/
+  }
 }
 
 function draw(Z, F, D)
@@ -118,11 +113,11 @@ function draw(Z, F, D)
     lineGeo.vertices[i].y *= D;
   }
   lineGeo.verticesNeedUpdate = true;
-  /*for (var i = 0; i < datapointsMesh.length; i++)
+  for (var i = 0; i < datapointsMesh.length; i++)
   {
-    datapointsMesh[i].position.x += (r-5)*0.1;
+    datapointsMesh[i].position = lineGeo.vertices[datapointsIndex[i]].clone();
     datapointsMesh[i].verticesNeedUpdate = true;
-  }*/
+  }
 }
 
 function calcWindowResize(renderer, camera)
