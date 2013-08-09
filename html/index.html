@@ -42,30 +42,94 @@
 
       <div class="panel panel-success">
         <div class="panel-heading">
-          <h3 class="panel-title">Radius</h3>
+          <h3 class="panel-title">Parameters</h3>
         </div>
-        <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="20" data-slider-step="0.5" data-slider-value="5" id="radiusSlider" data-slider-id="RS">
+        <table class="table tablenoborder">
+          <tr>
+            <td>
+              <input type="text" class="span2" value="" data-slider-min="-20" data-slider-max="20" data-slider-step="0.1" data-slider-value="-0.001" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+            </td>
+            <td>
+              <input type="text" class="span2" value="" data-slider-min="0" data-slider-max="100" data-slider-step="0.1" data-slider-value="100" id="fSlider" data-slider-id="FS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+            </td>
+            <td>
+              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="10" data-slider-step="0.1" data-slider-value="10" id="dSlider" data-slider-id="DS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+            </td>
+            <tr>
+              <td>Z</td>
+              <td>F</td>
+              <td>D</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="panel panel-info">
+          <div class="panel-heading">
+            <h3 class="panel-title">Information</h3>
+          </div>
+          <table class="table table-striped">
+            <tr>
+              <td><b>Z</b></td>
+              <td id="Zindicator"></td>
+            </tr>
+            <tr>
+              <td><b>F</b></td>
+              <td id="Findicator"></td>
+            </tr>
+             <tr>
+              <td><b>D</b></td>
+              <td id="Dindicator"></td>
+            </tr>
+          </table>
+        </div>
+
       </div>
 
-    </div>
+    </body>
+    <script>
+      $(document).ready(function(){
+        var oldZ = -100, oldF = -100, oldD = -100, z, f, d;
 
-  </body>
-  <script>
-    $(document).ready(function(){
-      init($('#drawCanvas'), $('#stat'), $('#radiusSlider').attr('data-slider-value'));
+        var getSliderVals = function() {
+          z = (parseFloat($('#zSlider').attr('data-slider-max')) - Z.getValue() + parseFloat($('#zSlider').attr('data-slider-min')));
+          $('#Zindicator').text(z.toFixed(1));
+          f = (parseFloat($('#fSlider').attr('data-slider-max')) - F.getValue() + parseFloat($('#fSlider').attr('data-slider-min')))/10;
+          $('#Findicator').text(f.toFixed(1));
+          d = (parseFloat($('#dSlider').attr('data-slider-max')) - D.getValue() + parseFloat($('#dSlider').attr('data-slider-min')))/10;
+          $('#Dindicator').text(d.toFixed(2));
+        };
 
-      var oldR = -1;
-      var changeRadius = function() {
-        var r = radius.getValue();
-        if (r != oldR) {
-          draw(r);
-          oldR = r;
-        }
-      };
-
-      var radius = $('#radiusSlider').slider()
-        .on('slide', changeRadius)
+        var changed = function() {
+          getSliderVals();
+          if (z != oldZ) {
+            draw(z, f, d);
+            oldZ = z;
+          }
+          if (d != oldD) {
+            draw(z, f, d);
+            oldD = d;
+          }
+          if (f != oldF) {
+            draw(z, f, d);
+            oldF = f;
+          }
+        };
+  
+        var Z = $('#zSlider').slider()
+        .on('slide', changed)
         .data('slider');
-    });
-  </script>
-</html>
+
+        var F = $('#fSlider').slider()
+        .on('slide', changed)
+        .data('slider');
+
+        var D = $('#dSlider').slider()
+        .on('slide', changed)
+        .data('slider');
+
+        getSliderVals();
+        
+        init($('#drawCanvas'), $('#stat'));
+     });
+    </script>
+  </html>

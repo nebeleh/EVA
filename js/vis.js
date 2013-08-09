@@ -2,9 +2,9 @@
 
 var renderer, camera, scence, controls, stats;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var lineGeom = null, datapointsMesh = [], line;
+var lineGeom = null, datapointsMesh = [];
 
-function init($container, $stat, r) {
+function init($container, $stat) {
   // scene
   scene = new THREE.Scene();
 
@@ -67,26 +67,26 @@ function init($container, $stat, r) {
   scene.add(floor);*/
 
   // start animating
-  initialDraw(r);
+  initialDraw();
   animate();
 }
 
 
-function initialDraw(r)
+function initialDraw()
 {
   // making a coil
   lineGeo = new THREE.Geometry();
-  var f = 1, minZ = -10, maxZ = 10;
-  for (var z = minZ, i = 0; z <= maxZ; z += 0.01/f, i++)
+  var T = 100, D = 0.1;
+  for (var i = 0; i < T; i++)
   {
-    lineGeo.vertices[i] = new THREE.Vector3(r*Math.sin(z*f*Math.PI), r-r*Math.cos(z*f*Math.PI), z);
+    lineGeo.vertices[i] = new THREE.Vector3(i*D, 0, 0);
     lineGeo.colors[i] = new THREE.Color(0x000000);
-    (lineGeo.vertices[i].z > 0) ? lineGeo.colors[i].setHSL(0.3, 1.0, 0.75*lineGeo.vertices[i].z/maxZ) : lineGeo.colors[i].setHSL(0.6, 1.0, -0.75*lineGeo.vertices[i].z/maxZ);
+    (i > T/2) ? lineGeo.colors[i].setHSL(0.3, 1.0, 0.75*(i-T/2)/T) : lineGeo.colors[i].setHSL(0.6, 1.0, (1-0.75*i/T)/2);
   }
 
   // adding the line to scene
   var material = new THREE.LineBasicMaterial({opacity: 1,  linewidth: 1, vertexColors: THREE.VertexColors});
-  line = new THREE.Line(lineGeo, material);
+  var line = new THREE.Line(lineGeo, material);
   scene.add(line);
 
   // adding datapoints
@@ -102,18 +102,10 @@ function initialDraw(r)
   }*/
 }
 
-function draw(r)
+function draw(Z, F, D)
 {
-  /*var f = 1, minZ = -10, maxZ = 10;
-  for (var z = minZ, i = 0; z <= maxZ; z += 0.01/f, i++)
-  {
-    lineGeo.vertices[i] = new THREE.Vector3(r*Math.sin(z*f*Math.PI), r-r*Math.cos(z*f*Math.PI), z);
-  }*/
   var T = lineGeo.vertices.length;
   var a;
-  var Z = 5;
-  var F = r-1;
-  var D = 0.01;
   lineGeo.vertices[0] = new THREE.Vector3(0, 0, 0);
   for (var i = 1; i < T; i++)
   {

@@ -14,9 +14,27 @@ body {
   left: 10px;
   z-index: 50;
 }
-#RS .slider-handle {
+#ZS .slider-handle {
   background: green;
 }
-#RS .slider-selection {
+#ZS .slider-selection {
   background: #c2f0c2;
+}
+#FS .slider-handle {
+  background: green;
+}
+#FS .slider-selection {
+  background: #c2f0c2;
+}
+#DS .slider-handle {
+  background: green;
+}
+#DS .slider-selection {
+  background: #c2f0c2;
+}
+.tablenoborder td {
+  border-top: none !important;
+  padding-top: 20px !important;
+  padding-bottom: 0px !important;
+  text-align: center !important;
 }
