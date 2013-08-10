@@ -95,6 +95,10 @@ function initialDraw()
     dataMesh.position.set(lineGeo.vertices[i].x, lineGeo.vertices[i].y, lineGeo.vertices[i].z);
     scene.add(dataMesh);
   }
+
+  // updating information
+  $('#tsindicator').text(lineGeo.vertices.length);
+  $('#eventsindicator').text(datapointsIndex.length);
 }
 
 function draw(Z, F, D)
