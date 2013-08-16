@@ -2,7 +2,7 @@
 
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var lineGeom = null, datapointsMesh = [], datapointsIndex = [];
+var lineGeom = null, datapointsMesh = [], datapointsIndex = [], line;
 
 function init($container, $stat) {
   // scene
@@ -70,7 +70,7 @@ function initialDraw()
 {
   // making a coil
   lineGeo = new THREE.Geometry();
-  var T = 10001, D = 0.1;
+  var T = 101, D = 0.1;
   for (var i = 0; i < T; i++)
   {
     lineGeo.vertices[i] = new THREE.Vector3(i*D, 0, 0);
@@ -80,7 +80,7 @@ function initialDraw()
 
   // adding the line to scene
   var material = new THREE.LineBasicMaterial({opacity: 1,  linewidth: 1, vertexColors: THREE.VertexColors});
-  var line = new THREE.Line(lineGeo, material);
+  line = new THREE.Line(lineGeo, material);
   scene.add(line);
 
   // adding datapoints
@@ -165,6 +165,14 @@ function update()
 function setCameraType(type)
 {
   var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
+  var x = -10, y = -10, z = 10;
+
+  if (camera)
+  {
+    x = camera.position.x;
+    y = camera.position.y;
+    z = camera.position.z;
+  }
 
   if (type === "perspective")
   {
@@ -175,15 +183,39 @@ function setCameraType(type)
     camera = new THREE.OrthographicCamera(-WIDTH/ORTHOSCALE, WIDTH/ORTHOSCALE, HEIGHT/ORTHOSCALE, -HEIGHT/ORTHOSCALE, ORTHONEAR, ORTHOFAR);
   }
 
-  camera.position.set(-10,-10,10);
-  camera.lookAt(scene.position);  
-  camera.up = new THREE.Vector3( 0, 0, 1 );
+  camera.position.set(x, y, z);
+  camera.lookAt(scene.position);
+  if (x == 0 && y == 0)
+    camera.up = new THREE.Vector3(0, 1, 0);
+  else
+    camera.up = new THREE.Vector3(0, 0, 1);
 
   // events
   calcWindowResize(renderer, camera);
 
   // controls
   controls = new THREE.TrackballControls(camera, renderer.domElement);
+}
+
+function setCameraZ()
+{
+  camera.position.set(0, 0, 10);
+  camera.lookAt(scene.position);
+  camera.up = new THREE.Vector3(0, 1, 0);
+}
+
+function setCameraY()
+{
+  camera.position.set(0, 10, 0);
+  camera.lookAt(scene.position);
+  camera.up = new THREE.Vector3(0, 0, 1);
+}
+
+function setCameraX()
+{
+  camera.position.set(10, 0, 0);
+  camera.lookAt(scene.position);
+  camera.up = new THREE.Vector3(0, 0, 1);
 }
 
 function setAxisHelper(s)
@@ -233,5 +265,14 @@ function setGridYZ(s)
     scene.add(gridYZ);
   } else {
     scene.remove(gridYZ);
+  }
+}
+
+function setLine(s)
+{
+  if(s) {
+    scene.add(line);
+  } else {
+    scene.remove(line);
   }
 }

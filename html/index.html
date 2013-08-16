@@ -102,6 +102,12 @@
           <form>
             <div class="checkbox">
               <label>
+                <input type="checkbox" onclick="setLine(this.checked);" checked>
+                Show Timeline
+              </label>
+            </div>
+            <div class="checkbox">
+              <label>
                 <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>
                 Axis Helper
               </label>
@@ -125,6 +131,15 @@
               </label>
             </div>
           </form>
+        </div>
+
+        <div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">Camera Orientation</h3>
+          </div>
+          <p><button type="button" class="btn btn-danger btn-block" onclick="setCameraX();">Look from X</button></p>
+          <p><button type="button" class="btn btn-success btn-block" onclick="setCameraY();">Look from Y</button></p>
+          <p><button type="button" class="btn btn-primary btn-block" onclick="setCameraZ();">Look from Z</button></p>
         </div>
 
       </div>
