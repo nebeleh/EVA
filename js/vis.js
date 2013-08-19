@@ -70,7 +70,7 @@ function initialDraw()
 {
   // making a coil
   lineGeo = new THREE.Geometry();
-  var T = 101, D = 0.1;
+  var T = 10001, D = 0.1;
   for (var i = 0; i < T; i++)
   {
     lineGeo.vertices[i] = new THREE.Vector3(i*D, 0, 0);
@@ -88,7 +88,7 @@ function initialDraw()
   var dataMaterialM = new THREE.MeshBasicMaterial({color: 0x0000ff, transparent: true, opacity: 0.3});
   for (var i = 0; i < lineGeo.vertices.length; i++)
   {
-    var formula = 0.1 * (Math.sin(40*i/T*Math.PI) + Math.sin(30*i/T*Math.PI));
+    var formula = 0.1 * Math.sin(40*i/T*Math.PI);
     var dataGeo = new THREE.SphereGeometry(0.01+Math.abs(formula));
     var dataMesh = (formula > 0) ? new THREE.Mesh(dataGeo, dataMaterialP) : new THREE.Mesh(dataGeo, dataMaterialM);
     datapointsMesh.push(dataMesh);
