@@ -70,7 +70,7 @@ function initialDraw()
 {
   // making a coil
   lineGeo = new THREE.Geometry();
-  var T = 10001, D = 0.1;
+  var T = 1001, D = 0.1;
   for (var i = 0; i < T; i++)
   {
     lineGeo.vertices[i] = new THREE.Vector3(i*D, 0, 0);
