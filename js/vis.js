@@ -4,7 +4,7 @@ var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var lineGeom = null, datapointsMesh = [], datapointsIndex = [], line;
 
-function init($container, $stat) {
+function init($container, $stat, rawdata) {
   // scene
   scene = new THREE.Scene();
 
@@ -61,16 +61,16 @@ function init($container, $stat) {
   setAxisHelper(true);
 
   // start animating
-  initialDraw();
+  initialDraw(rawdata);
   animate();
 }
 
 
-function initialDraw()
+function initialDraw(rawdata)
 {
   // making a coil
   lineGeo = new THREE.Geometry();
-  var T = 1001, D = 0.1;
+  var T = rawdata.length, D = 0.1;
   for (var i = 0; i < T; i++)
   {
     lineGeo.vertices[i] = new THREE.Vector3(i*D, 0, 0);
@@ -84,13 +84,15 @@ function initialDraw()
   scene.add(line);
 
   // adding datapoints
-  var dataMaterialP = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.3});
-  var dataMaterialM = new THREE.MeshBasicMaterial({color: 0x0000ff, transparent: true, opacity: 0.3});
   for (var i = 0; i < lineGeo.vertices.length; i++)
   {
-    var formula = 0.1 * Math.sin(40*i/T*Math.PI);
+    if (typeof rawdata[i] !== 'number') continue;
+    var formula = 0.001 * rawdata[i];
     var dataGeo = new THREE.SphereGeometry(0.01+Math.abs(formula));
-    var dataMesh = (formula > 0) ? new THREE.Mesh(dataGeo, dataMaterialP) : new THREE.Mesh(dataGeo, dataMaterialM);
+    var datapointColor = new THREE.Color(0x000000);
+    datapointColor.setHSL(formula * 10, 1.0, 0.5);
+    var dataMaterial = new THREE.MeshBasicMaterial({color: datapointColor.getHex(), transparent: true, opacity: 0.3});
+    var dataMesh = new THREE.Mesh(dataGeo, dataMaterial);
     datapointsMesh.push(dataMesh);
     datapointsIndex.push(i);
     dataMesh.position.set(lineGeo.vertices[i].x, lineGeo.vertices[i].y, lineGeo.vertices[i].z);

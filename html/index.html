@@ -150,7 +150,6 @@
 
         $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
 
-
         var oldZ = -100, oldF = -100, oldD = -100, z, f, d;
 
         var getSliderVals = function() {
@@ -192,7 +191,12 @@
 
         getSliderVals();
 
-        init($('#drawCanvas'), $('#stat'));
+        var datapoints = $.getJSON('data', function(datapoints) {
+          //console.log($.parseJSON(json));
+          init($('#drawCanvas'), $('#stat'), $.parseJSON(datapoints));
+        });
+
+        //init($('#drawCanvas'), $('#stat'));
       });
     </script>
   </html>
