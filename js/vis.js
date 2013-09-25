@@ -84,13 +84,15 @@ function initialDraw(rawdata)
   scene.add(line);
 
   // adding datapoints
+  var minTmp = Math.min.apply(null, rawdata);
+  var maxTmp = Math.max.apply(null, rawdata);
   for (var i = 0; i < lineGeo.vertices.length; i++)
   {
     if (typeof rawdata[i] !== 'number') continue;
     var formula = 0.001 * rawdata[i];
     var dataGeo = new THREE.SphereGeometry(0.01+Math.abs(formula));
     var datapointColor = new THREE.Color(0x000000);
-    datapointColor.setHSL(formula * 10, 1.0, 0.5);
+    datapointColor.setHSL((rawdata[i]-minTmp)/(maxTmp-minTmp)*0.8+0.2, 1.0, 0.5);
     var dataMaterial = new THREE.MeshBasicMaterial({color: datapointColor.getHex(), transparent: true, opacity: 0.3});
     var dataMesh = new THREE.Mesh(dataGeo, dataMaterial);
     datapointsMesh.push(dataMesh);
