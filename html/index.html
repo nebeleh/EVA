@@ -191,7 +191,7 @@
 
         getSliderVals();
 
-        var datapoints = $.getJSON('data', function(datapoints) {
+        var datapoints = $.getJSON('data?set=pitt-weather', function(datapoints) {
           //console.log($.parseJSON(json));
           init($('#drawCanvas'), $('#stat'), $.parseJSON(datapoints));
         });
