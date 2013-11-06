@@ -68,6 +68,25 @@ function init($container, $stat, rawdata) {
 
 function initialDraw(rawdata)
 {
+  // temp ----------- dealing with new json format
+  var tempdata = [];
+  var dimension = 0;
+  console.log('working on dimension: ' + rawdata[0][dimension]);
+  var isTime = false;
+  if (!isNaN(Date.parse(rawdata[1][dimension]))) isTime = true;
+  for (var i = 1; i < rawdata.length; i++) {
+    if (isTime) {
+      tempdata[i-1] = Date.parse(rawdata[i][dimension]);
+    } else {
+      tempdata[i-1] = parseFloat(rawdata[i][dimension]);
+    }
+    if (isNaN(tempdata[i-1])) tempdata[i-1] = null;
+  }
+  //console.log(rawdata);
+  rawdata = tempdata;
+  console.log(rawdata);
+  // temp ------------ end
+
   // making a coil
   lineGeo = new THREE.Geometry();
   var T = rawdata.length, D = 0.1;
@@ -89,6 +108,7 @@ function initialDraw(rawdata)
   for (var i = 0; i < lineGeo.vertices.length; i++)
   {
     if (typeof rawdata[i] !== 'number') continue;
+    if (isTime) { rawdata[i] -= minTmp; rawdata[i] /= (1000 * 3600); /*convert to hour*/}
     var formula = 0.001 * rawdata[i];
     var dataGeo = new THREE.SphereGeometry(0.01+Math.abs(formula));
     var datapointColor = new THREE.Color(0x000000);
@@ -100,6 +120,8 @@ function initialDraw(rawdata)
     dataMesh.position.set(lineGeo.vertices[i].x, lineGeo.vertices[i].y, lineGeo.vertices[i].z);
     scene.add(dataMesh);
   }
+
+  console.log(rawdata);
 
   // updating information
   $('#tsindicator').text(lineGeo.vertices.length);

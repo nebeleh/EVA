@@ -19,9 +19,26 @@
     <div id="stat"></div>
     <div id="drawCanvas"></div>
 
+    <div id="params3">
+      <div class="panel panel-info">
+        <div class="panel-heading">
+          <h3 class="panel-title">Dimension Mapping</h3>
+        </div>
+        <div class="dropdown">
+          <button class="btn dropdown-toggle sr-only" type="button" id="xDimensionDropdown" data-toggle="dropdown">
+            my button
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" role="menu" aria-labelledby="xDimensionDropdown">
+            <li role="presentation"><a role="menuitem" tabindex="-1" href="#">Action</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div id="params1">
 
-      <div class="panel panel-success">
+      <div class="panel panel-primary">
         <div class="panel-heading">
           <h3 class="panel-title">Parameters</h3>
         </div>
@@ -44,7 +61,7 @@
           </table>
         </div>
 
-        <div class="panel panel-warning">
+        <div class="panel panel-info">
           <div class="panel-heading">
             <h3 class="panel-title">Information</h3>
           </div>
@@ -191,12 +208,10 @@
 
         getSliderVals();
 
-        var datapoints = $.getJSON('data?set=pitt-weather', function(datapoints) {
-          //console.log($.parseJSON(json));
-          init($('#drawCanvas'), $('#stat'), $.parseJSON(datapoints));
+        $.getJSON('data/weather/weather.json', function(datapoints) {
+          init($('#drawCanvas'), $('#stat'), datapoints);
         });
 
-        //init($('#drawCanvas'), $('#stat'));
       });
     </script>
   </html>
