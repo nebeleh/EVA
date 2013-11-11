@@ -3,8 +3,32 @@
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var lineGeom = null, datapointsMesh = [], datapointsIndex = [], line;
+var datapoints = [];
 
 function init($container, $stat, rawdata) {
+  // perfome preprocessing on rawdata
+
+  // gain some understanding on each dimension
+  var isTime = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf,0);
+  /*
+   * unfortunately this automatic method doesn't work well. for now, i'll use a hard coded method.
+  for (var dimension = 0; dimension < rawdata[0].length; dimension++) {
+    if (!isNaN(Date.parse(rawdata[1][dimension]))) isTime[dimension] = 1;
+  }*/
+  isTime[0] = 1;
+
+  // parsing data points
+  for (var i = 1; i < rawdata.length; i++) {
+    var tempdata = [];
+    for (var d = 0; d < rawdata[0].length; d++ ) {
+      if (isTime[d]) { tempdata[d] = Date.parse(rawdata[i][d]); }
+      else { tempdata[d] = parseFloat(rawdata[i][d]); }
+
+      if (isNaN(tempdata[d])) { tempdata[d] = null; }
+    }
+    datapoints.push(tempdata);
+  }
+  
   // scene
   scene = new THREE.Scene();
 
@@ -61,31 +85,16 @@ function init($container, $stat, rawdata) {
   setAxisHelper(true);
 
   // start animating
-  initialDraw(rawdata);
   animate();
 }
 
 
-function initialDraw(rawdata)
+function initialDraw(mapping)
 {
-  // temp ----------- dealing with new json format
-  var tempdata = [];
-  var dimension = 0;
-  console.log('working on dimension: ' + rawdata[0][dimension]);
-  var isTime = false;
-  if (!isNaN(Date.parse(rawdata[1][dimension]))) isTime = true;
-  for (var i = 1; i < rawdata.length; i++) {
-    if (isTime) {
-      tempdata[i-1] = Date.parse(rawdata[i][dimension]);
-    } else {
-      tempdata[i-1] = parseFloat(rawdata[i][dimension]);
-    }
-    if (isNaN(tempdata[i-1])) tempdata[i-1] = null;
+  // for each datapoint, find its appropriate geometry and shape in 3D space
+  for (int data = 0; data < datapoints.length; data++) {
+
   }
-  //console.log(rawdata);
-  rawdata = tempdata;
-  console.log(rawdata);
-  // temp ------------ end
 
   // making a coil
   lineGeo = new THREE.Geometry();
@@ -120,8 +129,6 @@ function initialDraw(rawdata)
     dataMesh.position.set(lineGeo.vertices[i].x, lineGeo.vertices[i].y, lineGeo.vertices[i].z);
     scene.add(dataMesh);
   }
-
-  console.log(rawdata);
 
   // updating information
   $('#tsindicator').text(lineGeo.vertices.length);

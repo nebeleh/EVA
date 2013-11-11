@@ -14,6 +14,84 @@
     <script src="js/vis.js"></script>
     <script src="js/TrackballControls.js"></script>
     <script src="js/stats.min.js"></script>
+    <script>
+      var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1};
+      var mapDimension = function(dropdownId, dimensionName, dimensionIndex) {
+        if (dropdownId == "xDimensionDropdown") { mapping.x = dimensionIndex; }
+        else if (dropdownId == "yDimensionDropdown") { mapping.y = dimensionIndex; }
+        else if (dropdownId == "zDimensionDropdown") { mapping.z = dimensionIndex; }
+        else if (dropdownId == "cDimensionDropdown") { mapping.c = dimensionIndex; }
+        else if (dropdownId == "tDimensionDropdown") { mapping.t = dimensionIndex; }
+        $('#' + dropdownId).html(dimensionName.substr(0,9) + ' <span class="caret"></span>');
+        initialDraw(mapping);
+      };
+
+      $(document).ready(function(){
+
+        $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
+
+        var oldZ = -100, oldF = -100, oldD = -100, z, f, d;
+
+        var getSliderVals = function() {
+          z = (parseFloat($('#zSlider').attr('data-slider-max')) - Z.getValue() + parseFloat($('#zSlider').attr('data-slider-min')));
+          $('#Zindicator').text(z.toFixed(1));
+          f = (parseFloat($('#fSlider').attr('data-slider-max')) - F.getValue() + parseFloat($('#fSlider').attr('data-slider-min')))/10;
+          $('#Findicator').text(f.toFixed(1));
+          d = (parseFloat($('#dSlider').attr('data-slider-max')) - D.getValue() + parseFloat($('#dSlider').attr('data-slider-min')))/10;
+          $('#Dindicator').text(d.toFixed(2));
+        };
+
+        var changed = function() {
+          getSliderVals();
+          if (z != oldZ) {
+            draw(z, f, d);
+            oldZ = z;
+          }
+          if (d != oldD) {
+            draw(z, f, d);
+            oldD = d;
+          }
+          if (f != oldF) {
+            draw(z, f, d);
+            oldF = f;
+          }
+        };
+
+        var Z = $('#zSlider').slider()
+        .on('slide', changed)
+        .data('slider');
+
+        var F = $('#fSlider').slider()
+        .on('slide', changed)
+        .data('slider');
+
+        var D = $('#dSlider').slider()
+        .on('slide', changed)
+        .data('slider');
+
+        getSliderVals();
+        
+        $.getJSON('data/weather/weather.json', function(datapoints) {
+          // adding data dimensions to dimension mapping dropdowns
+          $('.dimension-mapper').each(function(d) {
+            var dropdownId = '';
+            if (d == 0) { dropdownId = 'xDimensionDropdown'; }
+            else if (d == 1) { dropdownId = 'yDimensionDropdown'; }
+            else if (d == 2) { dropdownId = 'zDimensionDropdown'; }
+            else if (d == 3) { dropdownId = 'cDimensionDropdown'; }
+            else {dropdownId = 'tDimensionDropdown'; }
+            var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'NONE\',-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
+            datapoints[0].forEach(function(e, i, a){
+              newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'' + e + '\',' + i + ');">' + e + '</a></li>\n';
+            });
+            jQuery(this).html(newHTML);
+          });
+
+          init($('#drawCanvas'), $('#stat'), datapoints);
+        });
+
+      });
+    </script>
   </head>
   <body>
     <div id="stat"></div>
@@ -24,15 +102,69 @@
         <div class="panel-heading">
           <h3 class="panel-title">Dimension Mapping</h3>
         </div>
-        <div class="dropdown">
-          <button class="btn dropdown-toggle sr-only" type="button" id="xDimensionDropdown" data-toggle="dropdown">
-            my button
+        <ul class="nav nav-pills">
+
+          <li class="active">
+            <a href="#">X: </a>
+          </li>
+          <li class="dropdown">
+          <a id="xDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+            NONE
             <span class="caret"></span>
-          </button>
-          <ul class="dropdown-menu" role="menu" aria-labelledby="xDimensionDropdown">
-            <li role="presentation"><a role="menuitem" tabindex="-1" href="#">Action</a></li>
-          </ul>
-        </div>
+          </a>
+            <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="xDimensionDropdown">
+            </ul>
+          </li>
+
+          <li class="active">
+            <a href="#">Y: </a>
+          </li>
+          <li class="dropdown">
+            <a id="yDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+              NONE
+              <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="yDimensionDropdown">
+            </ul>
+          </li>
+
+          <li class="active">
+            <a href="#">Z: </a>
+          </li>
+          <li class="dropdown">
+            <a id="zDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+              NONE
+              <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="zDimensionDropdown">
+            </ul>
+          </li>
+         
+          <li class="active">
+            <a href="#">Color: </a>
+          </li>
+          <li class="dropdown">
+            <a id="cDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+              NONE
+              <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="cDimensionDropdown">
+            </ul>
+          </li>
+
+          <li class="active">
+            <a href="#">Time: </a>
+          </li>
+          <li class="dropdown">
+            <a id="tDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+              NONE
+              <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="tDimensionDropdown">
+            </ul>
+          </li>
+
+        </ul>
       </div>
     </div>
 
@@ -141,7 +273,7 @@
                 Grid XZ Helper
               </label>
             </div>
-             <div class="checkbox">
+            <div class="checkbox">
               <label>
                 <input type="checkbox" onclick="setGridYZ(this.checked);">
                 Grid YZ Helper
@@ -162,56 +294,4 @@
       </div>
 
     </body>
-    <script>
-      $(document).ready(function(){
-
-        $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
-
-        var oldZ = -100, oldF = -100, oldD = -100, z, f, d;
-
-        var getSliderVals = function() {
-          z = (parseFloat($('#zSlider').attr('data-slider-max')) - Z.getValue() + parseFloat($('#zSlider').attr('data-slider-min')));
-          $('#Zindicator').text(z.toFixed(1));
-          f = (parseFloat($('#fSlider').attr('data-slider-max')) - F.getValue() + parseFloat($('#fSlider').attr('data-slider-min')))/10;
-          $('#Findicator').text(f.toFixed(1));
-          d = (parseFloat($('#dSlider').attr('data-slider-max')) - D.getValue() + parseFloat($('#dSlider').attr('data-slider-min')))/10;
-          $('#Dindicator').text(d.toFixed(2));
-        };
-
-        var changed = function() {
-          getSliderVals();
-          if (z != oldZ) {
-            draw(z, f, d);
-            oldZ = z;
-          }
-          if (d != oldD) {
-            draw(z, f, d);
-            oldD = d;
-          }
-          if (f != oldF) {
-            draw(z, f, d);
-            oldF = f;
-          }
-        };
-
-        var Z = $('#zSlider').slider()
-        .on('slide', changed)
-        .data('slider');
-
-        var F = $('#fSlider').slider()
-        .on('slide', changed)
-        .data('slider');
-
-        var D = $('#dSlider').slider()
-        .on('slide', changed)
-        .data('slider');
-
-        getSliderVals();
-
-        $.getJSON('data/weather/weather.json', function(datapoints) {
-          init($('#drawCanvas'), $('#stat'), datapoints);
-        });
-
-      });
-    </script>
   </html>

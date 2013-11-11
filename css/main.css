@@ -18,8 +18,8 @@ body {
   top: 10px;
   position: fixed;
   left: 50%;
-  width: 400px;
-  margin-left: -200px;
+  width: 900px;
+  margin-left: -450px;
   z-index: 101;
 }
 #stat {
@@ -51,4 +51,7 @@ body {
   padding-top: 20px !important;
   padding-bottom: 0px !important;
   text-align: center !important;
+}
+.dropdown{
+  width: 115px !important;
 }
