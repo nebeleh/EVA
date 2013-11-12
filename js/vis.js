@@ -33,13 +33,14 @@ function init($container, $stat, rawdata) {
     }
     datapoints.push(tempdata);
   }
-
+  
   // normalizing values for better visualization
   for (var i = 0; i < datapoints.length; i++) {
     for (var d = 0; d < rawdata[0].length; d++) {
       datapoints[i][d] = normalizingScale * (datapoints[i][d] - minOfColumn[d]) / (maxOfColumn[d] - minOfColumn[d]);
     }
   }
+
   // scene
   scene = new THREE.Scene();
 
@@ -141,7 +142,7 @@ function initialDraw(Mapping, X, Y, Z, R)
 
     if (mapping.c != -1) {
       if (isNaN(datapoints[i][mapping.c])) continue;
-      datapointColor.setHSL((datapoints[i][mapping.c]-minOfColumn[mapping.c])/(maxOfColumn[mapping.c]-minOfColumn[mapping.c])*0.8+0.2, 1.0, 0.5);
+      datapointColor.setHSL(datapoints[i][mapping.c] / normalizingScale * 0.8 + 0.2, 1.0, 0.5);
     }
 
     var dataGeometry = new THREE.SphereGeometry(0.05);
