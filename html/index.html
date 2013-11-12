@@ -16,6 +16,7 @@
     <script src="js/stats.min.js"></script>
     <script>
       var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1};
+      var x, y, z, r;
       var mapDimension = function(dropdownId, dimensionName, dimensionIndex) {
         if (dropdownId == "xDimensionDropdown") { mapping.x = dimensionIndex; }
         else if (dropdownId == "yDimensionDropdown") { mapping.y = dimensionIndex; }
@@ -23,49 +24,59 @@
         else if (dropdownId == "cDimensionDropdown") { mapping.c = dimensionIndex; }
         else if (dropdownId == "tDimensionDropdown") { mapping.t = dimensionIndex; }
         $('#' + dropdownId).html(dimensionName.substr(0,9) + ' <span class="caret"></span>');
-        initialDraw(mapping);
+        initialDraw(mapping, x, y, z, r);
       };
 
       $(document).ready(function(){
 
         $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
 
-        var oldZ = -100, oldF = -100, oldD = -100, z, f, d;
+        var oldX = -100, oldY = -100, oldZ = -100, oldR = -100;
 
         var getSliderVals = function() {
-          z = (parseFloat($('#zSlider').attr('data-slider-max')) - Z.getValue() + parseFloat($('#zSlider').attr('data-slider-min')));
+          x = (parseFloat($('#xSlider').attr('data-slider-max')) - X.getValue() + parseFloat($('#xSlider').attr('data-slider-min')))/10;
+          $('#Xindicator').text(x.toFixed(1));
+          y = (parseFloat($('#ySlider').attr('data-slider-max')) - Y.getValue() + parseFloat($('#ySlider').attr('data-slider-min')))/10;
+          $('#Yindicator').text(y.toFixed(1));
+          z = (parseFloat($('#zSlider').attr('data-slider-max')) - Z.getValue() + parseFloat($('#zSlider').attr('data-slider-min')))/10;
           $('#Zindicator').text(z.toFixed(1));
-          f = (parseFloat($('#fSlider').attr('data-slider-max')) - F.getValue() + parseFloat($('#fSlider').attr('data-slider-min')))/10;
-          $('#Findicator').text(f.toFixed(1));
-          d = (parseFloat($('#dSlider').attr('data-slider-max')) - D.getValue() + parseFloat($('#dSlider').attr('data-slider-min')))/10;
-          $('#Dindicator').text(d.toFixed(2));
+          r = (parseFloat($('#rSlider').attr('data-slider-max')) - R.getValue() + parseFloat($('#rSlider').attr('data-slider-min')))/100;
+          $('#Rindicator').text(r.toFixed(2));
         };
 
         var changed = function() {
           getSliderVals();
+          if (x != oldX) {
+            updateDraw(x, y, z, r);
+            oldX = x;
+          }
+          if (y != oldY) {
+            updateDraw(x, y, z, r);
+            oldY = y;
+          }
           if (z != oldZ) {
-            draw(z, f, d);
+            updateDraw(x, y, z, r);
             oldZ = z;
           }
-          if (d != oldD) {
-            draw(z, f, d);
-            oldD = d;
-          }
-          if (f != oldF) {
-            draw(z, f, d);
-            oldF = f;
+          if (r != oldR) {
+            updateDraw(x, y, z, r);
+            oldR = r;
           }
         };
+
+        var X = $('#xSlider').slider()
+        .on('slide', changed)
+        .data('slider');
+
+        var Y = $('#ySlider').slider()
+        .on('slide', changed)
+        .data('slider');
 
         var Z = $('#zSlider').slider()
         .on('slide', changed)
         .data('slider');
 
-        var F = $('#fSlider').slider()
-        .on('slide', changed)
-        .data('slider');
-
-        var D = $('#dSlider').slider()
+        var R = $('#rSlider').slider()
         .on('slide', changed)
         .data('slider');
 
@@ -104,8 +115,8 @@
         </div>
         <ul class="nav nav-pills">
 
-          <li class="active">
-            <a href="#">X: </a>
+          <li>
+            <button type="button" class="btn btn-danger btnblock" disabled>X: </button>
           </li>
           <li class="dropdown">
           <a id="xDimensionDropdown" role="button" data-toggle="dropdown" href="#">
@@ -116,8 +127,8 @@
             </ul>
           </li>
 
-          <li class="active">
-            <a href="#">Y: </a>
+          <li> 
+            <button type="button" class="btn btn-success btnblock" disabled>Y: </button>
           </li>
           <li class="dropdown">
             <a id="yDimensionDropdown" role="button" data-toggle="dropdown" href="#">
@@ -128,8 +139,8 @@
             </ul>
           </li>
 
-          <li class="active">
-            <a href="#">Z: </a>
+          <li>
+            <button type="button" class="btn btn-primary btnblock" disabled>Z: </button>
           </li>
           <li class="dropdown">
             <a id="zDimensionDropdown" role="button" data-toggle="dropdown" href="#">
@@ -140,8 +151,8 @@
             </ul>
           </li>
          
-          <li class="active">
-            <a href="#">Color: </a>
+          <li>
+            <button type="button" class="btn btn-warning btnblock" disabled>Color: </button>
           </li>
           <li class="dropdown">
             <a id="cDimensionDropdown" role="button" data-toggle="dropdown" href="#">
@@ -152,8 +163,8 @@
             </ul>
           </li>
 
-          <li class="active">
-            <a href="#">Time: </a>
+          <li>
+            <button type="button" class="btn btn-info btnblock" disabled>Time: </button>
           </li>
           <li class="dropdown">
             <a id="tDimensionDropdown" role="button" data-toggle="dropdown" href="#">
@@ -177,18 +188,22 @@
         <table class="table tablenoborder">
           <tr>
             <td>
-              <input type="text" class="span2" value="" data-slider-min="-20" data-slider-max="20" data-slider-step="0.1" data-slider-value="-0.001" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="901" id="xSlider" data-slider-id="XS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
             </td>
             <td>
-              <input type="text" class="span2" value="" data-slider-min="0" data-slider-max="100" data-slider-step="0.1" data-slider-value="100" id="fSlider" data-slider-id="FS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="901" id="ySlider" data-slider-id="YS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
             </td>
             <td>
-              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="10" data-slider-step="0.1" data-slider-value="10" id="dSlider" data-slider-id="DS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="901" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
             </td>
-            <tr>
-              <td data-toggle="tooltip" title="Z value of the last data point">H</td>
-              <td data-toggle="tooltip" title="Number of cycles">C</td>
-              <td data-toggle="tooltip" title="Distance between two consecutive datapoints">D</td>
+            <td>
+              <input type="text" class="span2" value="" data-slider-min="5" data-slider-max="100" data-slider-step="1" data-slider-value="100" id="rSlider" data-slider-id="RS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+            </td>
+           <tr>
+              <td data-toggle="tooltip" title="Scale in X">X</td>
+              <td data-toggle="tooltip" title="Scale in Y">Y</td>
+              <td data-toggle="tooltop" title="Scale in Z">Z</td>
+              <td data-toggle="tooltip" title="Sphere Radius">R</td>
             </tr>
           </table>
         </div>
@@ -199,20 +214,20 @@
           </div>
           <table class="table table-striped">
             <tr>
-              <td><b>Height</b></td>
+              <td><b>X Scale</b></td>
+              <td id="Xindicator"></td>
+            </tr>
+            <tr>
+              <td><b>Y Scale</b></td>
+              <td id="Yindicator"></td>
+            </tr>
+            <tr>
+              <td><b>Z Scale</b></td>
               <td id="Zindicator"></td>
             </tr>
             <tr>
-              <td><b>Cycles</b></td>
-              <td id="Findicator"></td>
-            </tr>
-            <tr>
-              <td><b>Distance</b></td>
-              <td id="Dindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Time Steps</b></td>
-              <td id="tsindicator"></td>
+              <td><b>Radius</b></td>
+              <td id="Rindicator"></td>
             </tr>
             <tr>
               <td><b>Events</b></td>
@@ -249,12 +264,6 @@
             <h3 class="panel-title">Settings</h3>
           </div>
           <form>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" onclick="setLine(this.checked);" checked>
-                Show Timeline
-              </label>
-            </div>
             <div class="checkbox">
               <label>
                 <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>

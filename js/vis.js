@@ -3,7 +3,7 @@
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var lineGeom = null, datapointsMesh = [], datapointsIndex = [], line;
-var datapoints = [], minOfColumn, maxOfColumn;
+var datapoints = [], minOfColumn, maxOfColumn, mapping, normalizingScale = 10;
 
 function init($container, $stat, rawdata) {
   // perfome preprocessing on rawdata
@@ -14,9 +14,9 @@ function init($container, $stat, rawdata) {
   maxOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf,Number.MIN_VALUE);
   /*
    * unfortunately this automatic method doesn't work well. for now, i'll use a hard coded method.
-  for (var dimension = 0; dimension < rawdata[0].length; dimension++) {
-    if (!isNaN(Date.parse(rawdata[1][dimension]))) isTime[dimension] = 1;
-  }*/
+   for (var dimension = 0; dimension < rawdata[0].length; dimension++) {
+   if (!isNaN(Date.parse(rawdata[1][dimension]))) isTime[dimension] = 1;
+   }*/
   isTime[0] = 1;
 
   // parsing data points
@@ -37,7 +37,7 @@ function init($container, $stat, rawdata) {
   // normalizing values for better visualization
   for (var i = 0; i < datapoints.length; i++) {
     for (var d = 0; d < rawdata[0].length; d++) {
-      datapoints[i][d] = 10 * (datapoints[i][d] - minOfColumn[d]) / (maxOfColumn[d] - minOfColumn[d]);
+      datapoints[i][d] = normalizingScale * (datapoints[i][d] - minOfColumn[d]) / (maxOfColumn[d] - minOfColumn[d]);
     }
   }
   // scene
@@ -96,36 +96,42 @@ function init($container, $stat, rawdata) {
   setAxisHelper(true);
 
   // start animating
+  updateInfo();
   animate();
 }
 
 
-function initialDraw(mapping)
+function initialDraw(Mapping, X, Y, Z, R)
 {
+  mapping = Mapping;
+
   for (var i = 0; i < datapointsMesh.length; i++) {
     scene.remove(datapointsMesh[i]);
   }
   datapointsMesh.length = 0;
   datapointsIndex.length = 0;
-console.log(datapoints[0]);
+
   // for each datapoint, find its appropriate geometry and size in 3D space
   for (var i = 0; i < datapoints.length; i++) {
     var x = 0, y = 0, z = 0, t = 0;
-    var datapointColor = new THREE.Color(0x0000ff);
-    // if one of assigned mappings is null in data, remove it
+    var datapointColor = new THREE.Color(0x000000);
+
+    if (mapping.x == -1 && mapping.y == -1 && mapping.z == -1 && mapping.c == -1 && mapping.t == -1) continue;
+
+    // if one of assigned mappings has null data, remove it
     if (mapping.x != -1) {
       if (isNaN(datapoints[i][mapping.x])) continue;
-      x = datapoints[i][mapping.x];
+      x = datapoints[i][mapping.x] * X / normalizingScale;
     }
 
     if (mapping.y != -1) {
       if (isNaN(datapoints[i][mapping.y])) continue;
-      y = datapoints[i][mapping.y];
+      y = datapoints[i][mapping.y] * Y / normalizingScale;
     }
 
     if (mapping.z != -1) {
       if (isNaN(datapoints[i][mapping.z])) continue;
-      z = datapoints[i][mapping.z];
+      z = datapoints[i][mapping.z] * Z / normalizingScale;
     }
 
     if (mapping.t != -1) {
@@ -141,39 +147,53 @@ console.log(datapoints[0]);
     var dataGeometry = new THREE.SphereGeometry(0.05);
     var dataMaterial = new THREE.MeshBasicMaterial({color: datapointColor.getHex(), transparent: true, opacity: 0.3});
     var dataMesh = new THREE.Mesh(dataGeometry, dataMaterial);
+    dataMesh.scale.x = R / 0.05;
+    dataMesh.scale.y = R / 0.05;
+    dataMesh.scale.z = R / 0.05;
     datapointsMesh.push(dataMesh);
     datapointsIndex.push(i);
-//    console.log(i);
     dataMesh.position.set(x, y, z);
     scene.add(dataMesh);
   }
-
-  // updating information
-  //$('#tsindicator').text(lineGeo.vertices.length);
-  $('#eventsindicator').text(datapointsIndex.length);
+  updateInfo();
 }
 
-function draw(Z, F, D)
+
+function updateDraw(X, Y, Z, R)
 {
-  var T = lineGeo.vertices.length;
-  var a;
-  lineGeo.vertices[0] = new THREE.Vector3(0, 0, 0);
-  for (var i = 1; i < T; i++)
-  {
-    a = 2 * Math.PI * F / (T-1);
-    lineGeo.vertices[i] = new THREE.Vector3( Math.cos(i*a) + lineGeo.vertices[i-1].x, Math.sin(i*a) + lineGeo.vertices[i-1].y, i / (T-1) * Z);
+  var x, y, z, r;
+  for (var i = 0; i < datapointsMesh.length; i++) {
+    if (mapping.x != -1) {
+      x = datapoints[datapointsIndex[i]][mapping.x] * X / normalizingScale;
+      if (x != datapointsMesh[i].position.x) {
+        datapointsMesh[i].position.x = x;
+        datapointsMesh[i].verticesNeedUpdate = true;
+      }
+    }
+    if (mapping.y != -1) {
+      y = datapoints[datapointsIndex[i]][mapping.y] * Y / normalizingScale;
+      if (y != datapointsMesh[i].position.y) {
+        datapointsMesh[i].position.y = y;
+        datapointsMesh[i].verticesNeedUpdate = true;
+      }
+    }
+    if (mapping.z != -1) {
+      z = datapoints[datapointsIndex[i]][mapping.z] * Z / normalizingScale;
+      if (z != datapointsMesh[i].position.z) {
+        datapointsMesh[i].position.z = z;
+        datapointsMesh[i].verticesNeedUpdate = true;
+      }
+    }
+    if (R != datapointsMesh[i].radius) {
+      datapointsMesh[i].scale.x = R / 0.05;
+      datapointsMesh[i].scale.y = R / 0.05;
+      datapointsMesh[i].scale.z = R / 0.05;
+    }
   }
-  for (var i = 1; i < T; i++)
-  {
-    lineGeo.vertices[i].x *= D;
-    lineGeo.vertices[i].y *= D;
-  }
-  lineGeo.verticesNeedUpdate = true;
-  for (var i = 0; i < datapointsMesh.length; i++)
-  {
-    datapointsMesh[i].position = lineGeo.vertices[datapointsIndex[i]].clone();
-    datapointsMesh[i].verticesNeedUpdate = true;
-  }
+}
+
+function updateInfo() {
+  $('#eventsindicator').text(datapointsIndex.length);
 }
 
 function calcWindowResize(renderer, camera)
@@ -316,14 +336,5 @@ function setGridYZ(s)
     scene.add(gridYZ);
   } else {
     scene.remove(gridYZ);
-  }
-}
-
-function setLine(s)
-{
-  if(s) {
-    scene.add(line);
-  } else {
-    scene.remove(line);
   }
 }

@@ -28,23 +28,29 @@ body {
   left: 10px;
   z-index: 50;
 }
-#ZS .slider-handle {
+#XS .slider-handle {
+  background: red;
+}
+#XS .slider-selection {
+  background: #E68F8D
+}
+#YS .slider-handle {
   background: green;
+}
+#YS .slider-selection {
+  background: #95D195;
+}
+#ZS .slider-handle {
+  background: blue;
 }
 #ZS .slider-selection {
-  background: #c2f0c2;
+  background: #84B4DC;
 }
-#FS .slider-handle {
-  background: green;
+#RS .slider-handle {
+  background: orange;
 }
-#FS .slider-selection {
-  background: #c2f0c2;
-}
-#DS .slider-handle {
-  background: green;
-}
-#DS .slider-selection {
-  background: #c2f0c2;
+#RS .slider-selection {
+  background: #F5CA8C;
 }
 .tablenoborder td {
   border-top: none !important;
