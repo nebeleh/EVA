@@ -3,13 +3,15 @@
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var lineGeom = null, datapointsMesh = [], datapointsIndex = [], line;
-var datapoints = [];
+var datapoints = [], minOfColumn, maxOfColumn;
 
 function init($container, $stat, rawdata) {
   // perfome preprocessing on rawdata
 
   // gain some understanding on each dimension
   var isTime = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf,0);
+  minOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf,Number.MAX_VALUE);
+  maxOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf,Number.MIN_VALUE);
   /*
    * unfortunately this automatic method doesn't work well. for now, i'll use a hard coded method.
   for (var dimension = 0; dimension < rawdata[0].length; dimension++) {
@@ -20,15 +22,24 @@ function init($container, $stat, rawdata) {
   // parsing data points
   for (var i = 1; i < rawdata.length; i++) {
     var tempdata = [];
-    for (var d = 0; d < rawdata[0].length; d++ ) {
+    for (var d = 0; d < rawdata[0].length; d++) {
       if (isTime[d]) { tempdata[d] = Date.parse(rawdata[i][d]); }
       else { tempdata[d] = parseFloat(rawdata[i][d]); }
 
-      if (isNaN(tempdata[d])) { tempdata[d] = null; }
+      if (!isNaN(tempdata[d])) {
+        minOfColumn[d] = Math.min(minOfColumn[d], tempdata[d]);
+        maxOfColumn[d] = Math.max(maxOfColumn[d], tempdata[d]);
+      }
     }
     datapoints.push(tempdata);
   }
-  
+
+  // normalizing values for better visualization
+  for (var i = 0; i < datapoints.length; i++) {
+    for (var d = 0; d < rawdata[0].length; d++) {
+      datapoints[i][d] = 10 * (datapoints[i][d] - minOfColumn[d]) / (maxOfColumn[d] - minOfColumn[d]);
+    }
+  }
   // scene
   scene = new THREE.Scene();
 
@@ -91,47 +102,54 @@ function init($container, $stat, rawdata) {
 
 function initialDraw(mapping)
 {
-  // for each datapoint, find its appropriate geometry and shape in 3D space
-  for (int data = 0; data < datapoints.length; data++) {
-
+  for (var i = 0; i < datapointsMesh.length; i++) {
+    scene.remove(datapointsMesh[i]);
   }
+  datapointsMesh.length = 0;
+  datapointsIndex.length = 0;
+console.log(datapoints[0]);
+  // for each datapoint, find its appropriate geometry and size in 3D space
+  for (var i = 0; i < datapoints.length; i++) {
+    var x = 0, y = 0, z = 0, t = 0;
+    var datapointColor = new THREE.Color(0x0000ff);
+    // if one of assigned mappings is null in data, remove it
+    if (mapping.x != -1) {
+      if (isNaN(datapoints[i][mapping.x])) continue;
+      x = datapoints[i][mapping.x];
+    }
 
-  // making a coil
-  lineGeo = new THREE.Geometry();
-  var T = rawdata.length, D = 0.1;
-  for (var i = 0; i < T; i++)
-  {
-    lineGeo.vertices[i] = new THREE.Vector3(i*D, 0, 0);
-    lineGeo.colors[i] = new THREE.Color(0x000000);
-    (i > T/2) ? lineGeo.colors[i].setHSL(0.3, 1.0, 0.75*(i-T/2)/T) : lineGeo.colors[i].setHSL(0.6, 1.0, (1-0.75*i/T)/2);
-  }
+    if (mapping.y != -1) {
+      if (isNaN(datapoints[i][mapping.y])) continue;
+      y = datapoints[i][mapping.y];
+    }
 
-  // adding the line to scene
-  var material = new THREE.LineBasicMaterial({opacity: 1,  linewidth: 1, vertexColors: THREE.VertexColors});
-  line = new THREE.Line(lineGeo, material);
-  scene.add(line);
+    if (mapping.z != -1) {
+      if (isNaN(datapoints[i][mapping.z])) continue;
+      z = datapoints[i][mapping.z];
+    }
 
-  // adding datapoints
-  var minTmp = Math.min.apply(null, rawdata);
-  var maxTmp = Math.max.apply(null, rawdata);
-  for (var i = 0; i < lineGeo.vertices.length; i++)
-  {
-    if (typeof rawdata[i] !== 'number') continue;
-    if (isTime) { rawdata[i] -= minTmp; rawdata[i] /= (1000 * 3600); /*convert to hour*/}
-    var formula = 0.001 * rawdata[i];
-    var dataGeo = new THREE.SphereGeometry(0.01+Math.abs(formula));
-    var datapointColor = new THREE.Color(0x000000);
-    datapointColor.setHSL((rawdata[i]-minTmp)/(maxTmp-minTmp)*0.8+0.2, 1.0, 0.5);
+    if (mapping.t != -1) {
+      if (isNaN(datapoints[i][mapping.t])) continue;
+      t = datapoints[i][mapping.t];
+    }
+
+    if (mapping.c != -1) {
+      if (isNaN(datapoints[i][mapping.c])) continue;
+      datapointColor.setHSL((datapoints[i][mapping.c]-minOfColumn[mapping.c])/(maxOfColumn[mapping.c]-minOfColumn[mapping.c])*0.8+0.2, 1.0, 0.5);
+    }
+
+    var dataGeometry = new THREE.SphereGeometry(0.05);
     var dataMaterial = new THREE.MeshBasicMaterial({color: datapointColor.getHex(), transparent: true, opacity: 0.3});
-    var dataMesh = new THREE.Mesh(dataGeo, dataMaterial);
+    var dataMesh = new THREE.Mesh(dataGeometry, dataMaterial);
     datapointsMesh.push(dataMesh);
     datapointsIndex.push(i);
-    dataMesh.position.set(lineGeo.vertices[i].x, lineGeo.vertices[i].y, lineGeo.vertices[i].z);
+//    console.log(i);
+    dataMesh.position.set(x, y, z);
     scene.add(dataMesh);
   }
 
   // updating information
-  $('#tsindicator').text(lineGeo.vertices.length);
+  //$('#tsindicator').text(lineGeo.vertices.length);
   $('#eventsindicator').text(datapointsIndex.length);
 }
 
@@ -266,7 +284,7 @@ var gridXY, gridXZ, gridYZ;
 function setGridXY(s)
 {
   if(s) {
-    gridXY = new THREE.GridHelper(5,1);
+    gridXY = new THREE.GridHelper(10, 1);
     gridXY.position.set(0, 0, 0);
     gridXY.rotation.x = Math.PI/2;
     gridXY.setColors( new THREE.Color(0xaaaa00), new THREE.Color(0xaaaa00) );
@@ -279,7 +297,7 @@ function setGridXY(s)
 function setGridXZ(s)
 {
   if(s) {
-    gridXZ = new THREE.GridHelper(5,1);
+    gridXZ = new THREE.GridHelper(10, 1);
     gridXZ.setColors( new THREE.Color(0xaa00aa), new THREE.Color(0xaa00aa) );
     gridXZ.position.set(0, 0, 0);
     scene.add(gridXZ);
@@ -291,7 +309,7 @@ function setGridXZ(s)
 function setGridYZ(s)
 {
   if(s) {
-    gridYZ = new THREE.GridHelper(5,1);
+    gridYZ = new THREE.GridHelper(10, 1);
     gridYZ.position.set(0, 0, 0);
     gridYZ.rotation.z = Math.PI/2;
     gridYZ.setColors( new THREE.Color(0x00aaaa), new THREE.Color(0x00aaaa) );
