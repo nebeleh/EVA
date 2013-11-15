@@ -2,7 +2,7 @@
 
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var lineGeom = null, datapointsMesh = [], datapointsIndex = [], line;
+var particleSystem, sprite;
 var datapoints = [], minOfColumn, maxOfColumn, mapping, normalizingScale = 10;
 
 function init($container, $stat, rawdata) {
@@ -17,7 +17,7 @@ function init($container, $stat, rawdata) {
    for (var dimension = 0; dimension < rawdata[0].length; dimension++) {
    if (!isNaN(Date.parse(rawdata[1][dimension]))) isTime[dimension] = 1;
    }*/
-  isTime[0] = 1;
+  //isTime[0] = 1;
 
   // parsing data points
   for (var i = 1; i < rawdata.length; i++) {
@@ -33,13 +33,16 @@ function init($container, $stat, rawdata) {
     }
     datapoints.push(tempdata);
   }
-  
+
   // normalizing values for better visualization
   for (var i = 0; i < datapoints.length; i++) {
     for (var d = 0; d < rawdata[0].length; d++) {
       datapoints[i][d] = normalizingScale * (datapoints[i][d] - minOfColumn[d]) / (maxOfColumn[d] - minOfColumn[d]);
     }
   }
+
+  // loading sprite
+  sprite = THREE.ImageUtils.loadTexture("js/circle.png");
 
   // scene
   scene = new THREE.Scene();
@@ -106,55 +109,60 @@ function initialDraw(Mapping, X, Y, Z, R)
 {
   mapping = Mapping;
 
-  for (var i = 0; i < datapointsMesh.length; i++) {
-    scene.remove(datapointsMesh[i]);
-  }
-  datapointsMesh.length = 0;
-  datapointsIndex.length = 0;
+  scene.remove(particleSystem)
 
   // for each datapoint, find its appropriate geometry and size in 3D space
-  for (var i = 0; i < datapoints.length; i++) {
-    var x = 0, y = 0, z = 0, t = 0;
-    var datapointColor = new THREE.Color(0x000000);
+  if (mapping.x != -1 || mapping.y != -1 || mapping.z != -1 || mapping.c != -1 || mapping.t != -1) {
 
-    if (mapping.x == -1 && mapping.y == -1 && mapping.z == -1 && mapping.c == -1 && mapping.t == -1) continue;
+    var particlesGeometry = new THREE.Geometry();
+    var datapointColors = [];
 
-    // if one of assigned mappings has null data, remove it
-    if (mapping.x != -1) {
-      if (isNaN(datapoints[i][mapping.x])) continue;
-      x = datapoints[i][mapping.x] * X / normalizingScale;
+    for (var i = 0; i < datapoints.length; i++) {
+      var x = 0, y = 0, z = 0, t = 0;
+      var tempColor = new THREE.Color(0x000000);
+      
+      // if one of assigned mappings has null data, remove it
+      if (mapping.x != -1) {
+        if (isNaN(datapoints[i][mapping.x])) continue;
+        x = datapoints[i][mapping.x] * X / normalizingScale;
+      }
+
+      if (mapping.y != -1) {
+        if (isNaN(datapoints[i][mapping.y])) continue;
+        y = datapoints[i][mapping.y] * Y / normalizingScale;
+      }
+
+      if (mapping.z != -1) {
+        if (isNaN(datapoints[i][mapping.z])) continue;
+        z = datapoints[i][mapping.z] * Z / normalizingScale;
+      }
+
+      if (mapping.t != -1) {
+        if (isNaN(datapoints[i][mapping.t])) continue;
+        t = datapoints[i][mapping.t];
+      }
+
+      if (mapping.c != -1) {
+        if (isNaN(datapoints[i][mapping.c])) continue;
+        tempColor.setHSL(datapoints[i][mapping.c] / normalizingScale * 0.8 + 0.2, 1.0, 0.5);
+      }
+
+      particlesGeometry.vertices.push(new THREE.Vector3(x, y, z));
+      datapointColors.push(tempColor);
+
+      //dataMesh.scale.x = R / 0.05;
+      //dataMesh.scale.y = R / 0.05;
+      //dataMesh.scale.z = R / 0.05;
+      //datapointsMesh.push(dataMesh);
+      //datapointsIndex.push(i);
+      //dataMesh.position.set(x, y, z);
+      //scene.add(dataMesh);
     }
-
-    if (mapping.y != -1) {
-      if (isNaN(datapoints[i][mapping.y])) continue;
-      y = datapoints[i][mapping.y] * Y / normalizingScale;
-    }
-
-    if (mapping.z != -1) {
-      if (isNaN(datapoints[i][mapping.z])) continue;
-      z = datapoints[i][mapping.z] * Z / normalizingScale;
-    }
-
-    if (mapping.t != -1) {
-      if (isNaN(datapoints[i][mapping.t])) continue;
-      t = datapoints[i][mapping.t];
-    }
-
-    if (mapping.c != -1) {
-      if (isNaN(datapoints[i][mapping.c])) continue;
-      datapointColor.setHSL(datapoints[i][mapping.c] / normalizingScale * 0.8 + 0.2, 1.0, 0.5);
-    }
-
-    var dataGeometry = new THREE.SphereGeometry(0.05);
-    var dataMaterial = new THREE.MeshBasicMaterial({color: datapointColor.getHex(), transparent: true, opacity: 0.3});
-    var dataMesh = new THREE.Mesh(dataGeometry, dataMaterial);
-    dataMesh.scale.x = R / 0.05;
-    dataMesh.scale.y = R / 0.05;
-    dataMesh.scale.z = R / 0.05;
-    datapointsMesh.push(dataMesh);
-    datapointsIndex.push(i);
-    dataMesh.position.set(x, y, z);
-    scene.add(dataMesh);
+    
+    particlesGeometry.colors = datapointColors;
+    particleSystem = new THREE.ParticleSystem(particlesGeometry, new THREE.ParticleSystemMaterial({map: sprite, vertexColors: true, transparent: true, size: R / 0.05}));
+    particleSystem.sortParticles = true;
+    scene.add(particleSystem);
   }
   updateInfo();
 }
@@ -194,7 +202,7 @@ function updateDraw(X, Y, Z, R)
 }
 
 function updateInfo() {
-  $('#eventsindicator').text(datapointsIndex.length);
+  $('#eventsindicator').text(particleSystem ? particleSystem.geometry.vertices.length : 0);
 }
 
 function calcWindowResize(renderer, camera)
