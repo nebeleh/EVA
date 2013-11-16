@@ -42,7 +42,7 @@ function init($container, $stat, rawdata) {
   }
 
   // loading sprite
-  sprite = THREE.ImageUtils.loadTexture("js/circle.png");
+  //sprite = THREE.ImageUtils.loadTexture("js/circle.png");
 
   // scene
   scene = new THREE.Scene();
@@ -108,15 +108,11 @@ function init($container, $stat, rawdata) {
 function initialDraw(Mapping, X, Y, Z, R)
 {
   mapping = Mapping;
+  scene.remove(particleSystem);
 
-  scene.remove(particleSystem)
-
-  // for each datapoint, find its appropriate geometry and size in 3D space
+  // first, select non-empty data points and save their location and color
+  var showableData = [];
   if (mapping.x != -1 || mapping.y != -1 || mapping.z != -1 || mapping.c != -1 || mapping.t != -1) {
-
-    var particlesGeometry = new THREE.Geometry();
-    var datapointColors = [];
-
     for (var i = 0; i < datapoints.length; i++) {
       var x = 0, y = 0, z = 0, t = 0;
       var tempColor = new THREE.Color(0x000000);
@@ -146,24 +142,30 @@ function initialDraw(Mapping, X, Y, Z, R)
         if (isNaN(datapoints[i][mapping.c])) continue;
         tempColor.setHSL(datapoints[i][mapping.c] / normalizingScale * 0.8 + 0.2, 1.0, 0.5);
       }
-
-      particlesGeometry.vertices.push(new THREE.Vector3(x, y, z));
-      datapointColors.push(tempColor);
-
-      //dataMesh.scale.x = R / 0.05;
-      //dataMesh.scale.y = R / 0.05;
-      //dataMesh.scale.z = R / 0.05;
-      //datapointsMesh.push(dataMesh);
-      //datapointsIndex.push(i);
-      //dataMesh.position.set(x, y, z);
-      //scene.add(dataMesh);
+      showableData.push(x, y, z, tempColor.r, tempColor.g, tempColor.b);
     }
-    
-    particlesGeometry.colors = datapointColors;
-    particleSystem = new THREE.ParticleSystem(particlesGeometry, new THREE.ParticleSystemMaterial({map: sprite, vertexColors: true, transparent: true, size: R / 0.05}));
-    particleSystem.sortParticles = true;
-    scene.add(particleSystem);
   }
+  var particles = showableData.length / 6;
+  var geometry = new THREE.BufferGeometry();
+  geometry.addAttribute('position', Float32Array, particles, 3);
+  geometry.addAttribute('color', Float32Array, particles, 3);
+
+  var positions = geometry.attributes.position.array;
+  var colors = geometry.attributes.color.array;
+
+  for (var i = 0; i < particles; i++) {
+    positions[i*3] = showableData[i*6];
+    positions[i*3+1] = showableData[i*6+1];
+    positions[i*3+2] = showableData[i*6+2];
+    colors[i*3] = showableData[i*6+3];
+    colors[i*3+1] = showableData[i*6+4];
+    colors[i*3+2] = showableData[i*6+5];
+  }
+  geometry.computeBoundingSphere();
+  var material = new THREE.ParticleSystemMaterial({transparent: false, size: R / 0.5, vertexColors: true});
+  particleSystem = new THREE.ParticleSystem(geometry, material);
+  scene.add(particleSystem);
+
   updateInfo();
 }
 
@@ -202,7 +204,7 @@ function updateDraw(X, Y, Z, R)
 }
 
 function updateInfo() {
-  $('#eventsindicator').text(particleSystem ? particleSystem.geometry.vertices.length : 0);
+  $('#eventsindicator').text(particleSystem ? particleSystem.geometry.attributes.position.array.length/3 : 0);
 }
 
 function calcWindowResize(renderer, camera)
