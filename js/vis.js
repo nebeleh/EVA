@@ -170,7 +170,7 @@ function initialDraw(Mapping, X, Y, Z, R)
 
 function updateDraw(X, Y, Z, R)
 {
-  var x, y, z, r;
+  var x, y, z;
   for (var i = 0; i < datapointsMesh.length; i++) {
     if (mapping.x != -1) {
       x = datapoints[datapointsIndex[i]][mapping.x] * X / normalizingScale;
