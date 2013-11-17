@@ -2,7 +2,7 @@
 
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var particleSystem, sprite;
+var particleSystem, sprite, geometry;
 var datapoints = [], minOfColumn, maxOfColumn, mapping, normalizingScale = 10;
 
 function init($container, $stat, rawdata) {
@@ -142,30 +142,33 @@ function initialDraw(Mapping, X, Y, Z, R)
         if (isNaN(datapoints[i][mapping.c])) continue;
         tempColor.setHSL(datapoints[i][mapping.c] / normalizingScale * 0.8 + 0.2, 1.0, 0.5);
       }
-      showableData.push(x, y, z, tempColor.r, tempColor.g, tempColor.b);
+      showableData.push(x, y, z, tempColor.r, tempColor.g, tempColor.b, i);
     }
   }
-  var particles = showableData.length / 6;
-  var geometry = new THREE.BufferGeometry();
+  var particles = showableData.length / 7;
+  geometry = new THREE.BufferGeometry();
   geometry.addAttribute('position', Float32Array, particles, 3);
   geometry.addAttribute('color', Float32Array, particles, 3);
+  geometry.addAttribute('dataindex', Float32Array, particles, 1);
 
   var positions = geometry.attributes.position.array;
   var colors = geometry.attributes.color.array;
+  var dataindex = geometry.attributes.dataindex.array;
 
   for (var i = 0; i < particles; i++) {
-    positions[i*3] = showableData[i*6];
-    positions[i*3+1] = showableData[i*6+1];
-    positions[i*3+2] = showableData[i*6+2];
-    colors[i*3] = showableData[i*6+3];
-    colors[i*3+1] = showableData[i*6+4];
-    colors[i*3+2] = showableData[i*6+5];
+    positions[i*3] = showableData[i*7];
+    positions[i*3+1] = showableData[i*7+1];
+    positions[i*3+2] = showableData[i*7+2];
+    colors[i*3] = showableData[i*7+3];
+    colors[i*3+1] = showableData[i*7+4];
+    colors[i*3+2] = showableData[i*7+5];
+    dataindex[i] = showableData[i*7+6];
   }
   geometry.computeBoundingSphere();
   var material = new THREE.ParticleSystemMaterial({transparent: false, size: R / 0.5, vertexColors: true});
   particleSystem = new THREE.ParticleSystem(geometry, material);
   scene.add(particleSystem);
-
+  
   updateInfo();
 }
 
@@ -173,34 +176,16 @@ function initialDraw(Mapping, X, Y, Z, R)
 function updateDraw(X, Y, Z, R)
 {
   var x, y, z;
-  for (var i = 0; i < datapointsMesh.length; i++) {
-    if (mapping.x != -1) {
-      x = datapoints[datapointsIndex[i]][mapping.x] * X / normalizingScale;
-      if (x != datapointsMesh[i].position.x) {
-        datapointsMesh[i].position.x = x;
-        datapointsMesh[i].verticesNeedUpdate = true;
-      }
-    }
-    if (mapping.y != -1) {
-      y = datapoints[datapointsIndex[i]][mapping.y] * Y / normalizingScale;
-      if (y != datapointsMesh[i].position.y) {
-        datapointsMesh[i].position.y = y;
-        datapointsMesh[i].verticesNeedUpdate = true;
-      }
-    }
-    if (mapping.z != -1) {
-      z = datapoints[datapointsIndex[i]][mapping.z] * Z / normalizingScale;
-      if (z != datapointsMesh[i].position.z) {
-        datapointsMesh[i].position.z = z;
-        datapointsMesh[i].verticesNeedUpdate = true;
-      }
-    }
-    if (R != datapointsMesh[i].radius) {
-      datapointsMesh[i].scale.x = R / 0.05;
-      datapointsMesh[i].scale.y = R / 0.05;
-      datapointsMesh[i].scale.z = R / 0.05;
-    }
+  var positions = geometry.attributes.position.array;
+  var dataindex = geometry.attributes.dataindex.array;
+
+  for(var i = 0; i < dataindex.length; i++) {
+    if (mapping.x != -1) positions[i*3] = datapoints[dataindex[i]][mapping.x] * X / normalizingScale;
+    if (mapping.y != -1) positions[i*3+1] = datapoints[dataindex[i]][mapping.y] * Y / normalizingScale;
+    if (mapping.z != -1) positions[i*3+2] = datapoints[dataindex[i]][mapping.z] * Z / normalizingScale;
   }
+  geometry.attributes.position.needsUpdate = true;
+  particleSystem.material.size = R / 0.5;
 }
 
 function updateInfo() {
