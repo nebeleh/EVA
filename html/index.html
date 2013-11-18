@@ -14,6 +14,7 @@
     <script src="js/vis.js"></script>
     <script src="js/TrackballControls.js"></script>
     <script src="js/stats.min.js"></script>
+    <script src="js/DataStream.js"></script>
     <script>
       var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1};
       var x, y, z, r;
@@ -26,7 +27,7 @@
         $('#' + dropdownId).html(dimensionName.substr(0,9) + ' <span class="caret"></span>');
         initialDraw(mapping, x, y, z, r);
       };
-
+      
       $(document).ready(function(){
 
         $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
@@ -81,6 +82,18 @@
         .data('slider');
 
         getSliderVals();
+
+        /*var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/data/bozzy.bin', true);
+        xhr.responseType = 'arraybuffer';
+        
+        xhr.onload = function(e) {
+          var buf = this.response;
+          var stream = new DataStream(buf, 0, DataStream.LITTLE_ENDIAN);
+          console.log(stream.readUint32().toString(16));
+        };
+
+        xhr.send();*/
 
         $.get('data/lehd/pa_rac_S000_JT00_2011_medium.json',function(datapoints) {
           // adding data dimensions to dimension mapping dropdowns
