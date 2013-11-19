@@ -3,15 +3,15 @@
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, sprite, geometry;
-var datapoints = [], minOfColumn, maxOfColumn, mapping, normalizingScale = 10;
+var datapoints, numberOfDatapoints, minOfColumn, maxOfColumn, mapping, normalizingScale = 10;
 
 function init($container, $stat, rawdata) {
   // perfome preprocessing on rawdata
 
   // gain some understanding on each dimension
-  var isTime = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf, 0);
-  minOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf, Number.MAX_VALUE);
-  maxOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf, -Number.MAX_VALUE);
+  var isTime = Array.apply(null, new Array(13/*rawdata[0].length*/)).map(Number.prototype.valueOf, 0);
+  minOfColumn = Array.apply(null, new Array(13/*rawdata[0].length*/)).map(Number.prototype.valueOf, Number.MAX_VALUE);
+  maxOfColumn = Array.apply(null, new Array(13/*rawdata[0].length*/)).map(Number.prototype.valueOf, -Number.MAX_VALUE);
   /*
    * unfortunately this automatic method doesn't work well. for now, i'll use a hard coded method.
    for (var dimension = 0; dimension < rawdata[0].length; dimension++) {
@@ -20,7 +20,7 @@ function init($container, $stat, rawdata) {
   //isTime[0] = 1;
 
   // parsing data points
-  for (var i = 1; i < rawdata.length; i++) {
+/*  for (var i = 1; i < rawdata.length; i++) {
     var tempdata = [];
     for (var d = 0; d < rawdata[0].length; d++) {
       if (isTime[d]) { tempdata[d] = Date.parse(rawdata[i][d]); }
@@ -32,15 +32,38 @@ function init($container, $stat, rawdata) {
       }
     }
     datapoints.push(tempdata);
+  }*/
+
+  numberOfDatapoints = rawdata.byteLength / (8*13);
+  datapoints = new DataView(rawdata);
+  var dummy;
+  for (var i = 0; i < numberOfDatapoints; i++) {
+    for (var j = 0; j < 13; j++) {
+      dummy = datapoints.getFloat64((i*13+j)*8, true);      
+      minOfColumn[j] = (minOfColumn[j] <= dummy) ? minOfColumn[j] : dummy;
+      maxOfColumn[j] = (maxOfColumn[j] >= dummy) ? maxOfColumn[j] : dummy;
+    }
   }
 
+  for (var i = 0; i < numberOfDatapoints; i++) {
+    for (var j = 0; j < 13; j++) {
+      dummy = datapoints.getFloat64((i*13+j)*8, true);
+      // normalize
+      if (maxOfColumn[j] > minOfColumn[j]) {
+        datapoints.setFloat64((i*13+j)*8, normalizingScale * (dummy - minOfColumn[j]) / (maxOfColumn[j] - minOfColumn[j]), true);
+      } else { //center
+        datapoints.setFloat64((i*13+j)*8, 0, true);
+      }
+    }
+  }
+  
   // normalizing values for better visualization
-  for (var i = 0; i < datapoints.length; i++) {
+  /*for (var i = 0; i < datapoints.length; i++) {
     for (var d = 0; d < rawdata[0].length; d++) {
       if (maxOfColumn[d] > minOfColumn[d])
         datapoints[i][d] = normalizingScale * (datapoints[i][d] - minOfColumn[d]) / (maxOfColumn[d] - minOfColumn[d]);
     }
-  }
+  }*/
 
   // loading sprite
   //sprite = THREE.ImageUtils.loadTexture("js/circle.png");
@@ -112,9 +135,9 @@ function initialDraw(Mapping, X, Y, Z, R)
   scene.remove(particleSystem);
 
   // first, select non-empty data points and save their location and color
-  var showableData = [];
+ /* var showableData = [];
   if (mapping.x != -1 || mapping.y != -1 || mapping.z != -1 || mapping.c != -1 || mapping.t != -1) {
-    for (var i = 0; i < datapoints.length; i++) {
+    for (var i = 0; i < numberOfDatapoints; i++) {
       var x = 0, y = 0, z = 0, t = 0;
       var tempColor = new THREE.Color(0x000000);
       
@@ -146,7 +169,8 @@ function initialDraw(Mapping, X, Y, Z, R)
       showableData.push(x, y, z, tempColor.r, tempColor.g, tempColor.b, i);
     }
   }
-  var particles = showableData.length / 7;
+  var particles = showableData.length / 7;*/
+  var particles = numberOfDatapoints;
   geometry = new THREE.BufferGeometry();
   geometry.addAttribute('position', Float32Array, particles, 3);
   geometry.addAttribute('color', Float32Array, particles, 3);
@@ -156,15 +180,29 @@ function initialDraw(Mapping, X, Y, Z, R)
   var colors = geometry.attributes.color.array;
   var dataindex = geometry.attributes.dataindex.array;
 
+  console.log('going to draw ' + particles + ' particles.');
+
+  var tempColor;
   for (var i = 0; i < particles; i++) {
-    positions[i*3] = showableData[i*7];
+    positions[i*3]   = datapoints.getFloat64((i*13+mapping.x)*8, true) * X / normalizingScale;
+    positions[i*3+1] = datapoints.getFloat64((i*13+mapping.y)*8, true) * Y / normalizingScale;
+    positions[i*3+2] = datapoints.getFloat64((i*13+mapping.z)*8, true) * Z / normalizingScale;
+    tempColor = new THREE.Color(0x000000);
+    tempColor.setHSL(datapoints.getFloat64((i*13+mapping.c)*8, true) / normalizingScale * .8 + .2, 1., .5);
+    colors[i*3]   = tempColor.r;
+    colors[i*3+1] = tempColor.g;
+    colors[i*3+2] = tempColor.b;
+/*    positions[i*3] = showableData[i*7];
     positions[i*3+1] = showableData[i*7+1];
     positions[i*3+2] = showableData[i*7+2];
     colors[i*3] = showableData[i*7+3];
     colors[i*3+1] = showableData[i*7+4];
     colors[i*3+2] = showableData[i*7+5];
-    dataindex[i] = showableData[i*7+6];
+    dataindex[i] = showableData[i*7+6];*/
   }
+
+  console.log(positions[0], positions[1], positions[2]);
+
   geometry.computeBoundingSphere();
   var material = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending, transparent: true,*/ size: R / 0.5, vertexColors: true});
   particleSystem = new THREE.ParticleSystem(geometry, material);

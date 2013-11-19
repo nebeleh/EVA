@@ -14,7 +14,6 @@
     <script src="js/vis.js"></script>
     <script src="js/TrackballControls.js"></script>
     <script src="js/stats.min.js"></script>
-    <script src="js/DataStream.js"></script>
     <script>
       var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1};
       var x, y, z, r;
@@ -85,15 +84,15 @@
 
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '/data/lehd/pa_od_main_JT00_2011_large.bin', true);
+        //xhr.overrideMimeType('text/plain; charset=x-user-defined');
         xhr.responseType = 'arraybuffer';
         
         xhr.onload = function(e) {
           var buf = this.response;
-          var stream = new DataStream(buf, 0, DataStream.LITTLE_ENDIAN);
+          //var stream = new DataStream(buf, 0, DataStream.LITTLE_ENDIAN);
 
-          var c = 0;
           var datapoints = [["work_geo", "residence_geo", "total jobs", "#jobs age 29 or younger", "#jobs age 30 to 54", "#jobs age 55 or older", "#jobs earning $1250/month or less", "#jobs earning $1251/month to $3333/month", "#jobs earning greater than $3333/month", "#jobs in Goods producing", "#jobs in trade, transportation, and utilities", "#jobs in all other services", "date"]];
-          var tempdata = [];
+          /*var tempdata = [];
           for (var i = 0; i < buf.byteLength; ) {
             tempdata.push(stream.readFloat64().toString());
             i += 8;
@@ -101,7 +100,7 @@
               if (tempdata.length > 0) datapoints.push(tempdata);
               tempdata = [];
             }
-          }
+          }*/
 
           $('.dimension-mapper').each(function(d) {
             var dropdownId = '';
@@ -117,7 +116,7 @@
             jQuery(this).html(newHTML);
           });
 
-          init($('#drawCanvas'), $('#stat'), datapoints);
+          init($('#drawCanvas'), $('#stat'), buf/*datapoints*/);
 
         };
 
