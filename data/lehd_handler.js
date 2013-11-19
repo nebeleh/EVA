@@ -27,8 +27,10 @@ var processData = function(sourceFile) {
 
 function CSVToBin(sourceFile, destFile, strDelimiter) {
 
-  var outStream = fs.createWriteStream(destFile);
+//  var outStream = fs.createWriteStream(destFile);
+  var outStream = fs.openSync(destFile, 'w');
   var firstLine = true;
+  var lineCounter = 0;
 
   strDelimiter = (strDelimiter || ",");
   var objPattern = new RegExp(("(\\" + strDelimiter + "|\\r?\\n|\\r|^)" + "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" + "([^\"\\" + strDelimiter + "\\r\\n]*))"), "gi");
@@ -39,7 +41,6 @@ function CSVToBin(sourceFile, destFile, strDelimiter) {
     line += '\n';
     var arrMatches = null;
     var tempData = [];
-    var lineCounter = 0;
 
     while (arrMatches = objPattern.exec(line)) {
       var strMatchedDelimiter = arrMatches[1];
@@ -56,9 +57,10 @@ function CSVToBin(sourceFile, destFile, strDelimiter) {
               buf.writeDoubleLE(parseFloat(tempData[i]), i*8);
             }
             lineCounter++;
-            if (lineCounter % 5000 == 0)
+            if (lineCounter % 1000 == 0)
               console.log('wrote ' + lineCounter + ' lines ...');
-            outStream.write(buf);
+            //outStream.writeSync(buf);
+            fs.writeSync(outStream, buf, 0, buf.length);
           }
         }
         tempData = [];
@@ -73,7 +75,8 @@ function CSVToBin(sourceFile, destFile, strDelimiter) {
 
     // TODO write size of each row and number of rows to metadata JSON in order to make it easier for the client to load the data
     if (last) {
-      outStream.end();
+      //outStream.end();
+      fs.closeSync(outStream);
       console.log('Wrote ' + lineCounter + ' lines. All done.');
       return false;
     }
