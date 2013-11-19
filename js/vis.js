@@ -9,9 +9,9 @@ function init($container, $stat, rawdata) {
   // perfome preprocessing on rawdata
 
   // gain some understanding on each dimension
-  var isTime = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf,0);
-  minOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf,Number.MAX_VALUE);
-  maxOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf,Number.MIN_VALUE);
+  var isTime = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf, 0);
+  minOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf, Number.MAX_VALUE);
+  maxOfColumn = Array.apply(null, new Array(rawdata[0].length)).map(Number.prototype.valueOf, -Number.MAX_VALUE);
   /*
    * unfortunately this automatic method doesn't work well. for now, i'll use a hard coded method.
    for (var dimension = 0; dimension < rawdata[0].length; dimension++) {
@@ -27,8 +27,8 @@ function init($container, $stat, rawdata) {
       else { tempdata[d] = parseFloat(rawdata[i][d]); }
 
       if (!isNaN(tempdata[d])) {
-        minOfColumn[d] = Math.min(minOfColumn[d], tempdata[d]);
-        maxOfColumn[d] = Math.max(maxOfColumn[d], tempdata[d]);
+        minOfColumn[d] = (minOfColumn[d] <= tempdata[d]) ? minOfColumn[d] : tempdata[d];
+        maxOfColumn[d] = (maxOfColumn[d] >= tempdata[d]) ? maxOfColumn[d] : tempdata[d];
       }
     }
     datapoints.push(tempdata);
@@ -37,7 +37,8 @@ function init($container, $stat, rawdata) {
   // normalizing values for better visualization
   for (var i = 0; i < datapoints.length; i++) {
     for (var d = 0; d < rawdata[0].length; d++) {
-      datapoints[i][d] = normalizingScale * (datapoints[i][d] - minOfColumn[d]) / (maxOfColumn[d] - minOfColumn[d]);
+      if (maxOfColumn[d] > minOfColumn[d])
+        datapoints[i][d] = normalizingScale * (datapoints[i][d] - minOfColumn[d]) / (maxOfColumn[d] - minOfColumn[d]);
     }
   }
 
@@ -165,7 +166,7 @@ function initialDraw(Mapping, X, Y, Z, R)
     dataindex[i] = showableData[i*7+6];
   }
   geometry.computeBoundingSphere();
-  var material = new THREE.ParticleSystemMaterial({transparent: false, size: R / 0.5, vertexColors: true});
+  var material = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending, transparent: true,*/ size: R / 0.5, vertexColors: true});
   particleSystem = new THREE.ParticleSystem(geometry, material);
   scene.add(particleSystem);
   

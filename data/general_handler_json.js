@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
-// run like this: $./data_handler.js ./weather/temperature
+// run like this: $./general_handler_json.js ./weather/temperature
+//
+// This is a general data handler. It reads a text file (written as csv) line by line
+// and converts each line into and array. It then writes the array into JSON format
+// and creates a .json file with the same name.
 
 var fs = require('fs');
 var lineReader = require('line-reader');
 
-// a multi dimension object of weather data
 var processData = function(fn) {
   if (fs.existsSync(fn + '.json')) {
     console.log(fn + '.json already exists. doing nothing ...');
