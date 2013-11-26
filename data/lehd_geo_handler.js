@@ -26,9 +26,6 @@ var processData = function(sourceFile, geoFile) {
     console.log('Processing ' + sourceFile + ' with lat long help from ' + geoFile + ' and writing to ' + destFile + ' ...');
     CSVToBin(sourceFile, destFile, geoFile);
   }
-
-  CSVToBin();
-
 }
 
 // converts CSV to Binary file while adding lat and long based on census block code
@@ -65,11 +62,15 @@ function CSVToBin(sourceFile, destFile, geoFile, strDelimiter) {
 
     geomap.set(censusBlock, [geoLat, geoLong]);
   }
+  fs.closeSync(inStream);
   console.log('geo done.');
 
   var outStream = fs.openSync(destFile, 'w');
   var firstLine = true;
   var lineCounter = 0;
+
+  strDelimiter = (strDelimiter || ",");
+  var objPattern = new RegExp(("(\\" + strDelimiter + "|\\r?\\n|\\r|^)" + "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" + "([^\"\\" + strDelimiter + "\\r\\n]*))"), "gi");
 
   lineReader.eachLine(sourceFile, function(line, last) {
 
@@ -88,15 +89,14 @@ function CSVToBin(sourceFile, destFile, geoFile, strDelimiter) {
             firstLine = false;
           } else {
             // TODO handle each type of data differently. right now I'm using doubles for everything, even strings
-            var buf = new Buffer(8 * (tempData.length + 2));
-            for (var i = 0; i < tempData.length; i++) {
-              buf.writeDoubleLE(parseFloat(tempData[i]), i*8);
+            var buf = new Buffer(8 * (tempData.length + 4));
+            for (var i = 0, j = 0; i < tempData.length; i++) {
+              buf.writeDoubleLE(parseFloat(tempData[i]), (j++)*8);
               // write lat, long
-              if (i == 0) {
-                i++;
-                buf.writeDoubleLE(geomap.get(parseFloat(tempData[i]))[0], i*8);
-                i++;
-                buf.writeDoubleLE(geomap.get(parseFloat(tempData[i]))[1], i*8);
+              if (i <= 1) {
+                var censusBlock = parseFloat(tempData[i]);
+                buf.writeDoubleLE(geomap.get(censusBlock)[0], (j++)*8);
+                buf.writeDoubleLE(geomap.get(censusBlock)[1], (j++)*8);
               }
             }
             lineCounter++;

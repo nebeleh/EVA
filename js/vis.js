@@ -9,9 +9,9 @@ function init($container, $stat, rawdata) {
   // perfome preprocessing on rawdata
 
   // gain some understanding on each dimension
-  var isTime = Array.apply(null, new Array(13/*rawdata[0].length*/)).map(Number.prototype.valueOf, 0);
-  minOfColumn = Array.apply(null, new Array(13/*rawdata[0].length*/)).map(Number.prototype.valueOf, Number.MAX_VALUE);
-  maxOfColumn = Array.apply(null, new Array(13/*rawdata[0].length*/)).map(Number.prototype.valueOf, -Number.MAX_VALUE);
+  var isTime = Array.apply(null, new Array(17/*rawdata[0].length*/)).map(Number.prototype.valueOf, 0);
+  minOfColumn = Array.apply(null, new Array(17/*rawdata[0].length*/)).map(Number.prototype.valueOf, Number.MAX_VALUE);
+  maxOfColumn = Array.apply(null, new Array(17/*rawdata[0].length*/)).map(Number.prototype.valueOf, -Number.MAX_VALUE);
   /*
    * unfortunately this automatic method doesn't work well. for now, i'll use a hard coded method.
    for (var dimension = 0; dimension < rawdata[0].length; dimension++) {
@@ -19,12 +19,12 @@ function init($container, $stat, rawdata) {
    }*/
   //isTime[0] = 1;
 
-  particles = rawdata.byteLength / (8*13);
+  particles = rawdata.byteLength / (8*17);
   datapoints = new DataView(rawdata);
   var dummy;
   for (var i = 0; i < particles; i++) {
-    for (var j = 0; j < 13; j++) {
-      dummy = datapoints.getFloat64((i*13+j)*8, true);
+    for (var j = 0; j < 17; j++) {
+      dummy = datapoints.getFloat64((i*17+j)*8, true);
       if (!isNaN(dummy)) {
         minOfColumn[j] = (minOfColumn[j] <= dummy) ? minOfColumn[j] : dummy;
         maxOfColumn[j] = (maxOfColumn[j] >= dummy) ? maxOfColumn[j] : dummy;
@@ -33,13 +33,13 @@ function init($container, $stat, rawdata) {
   }
 
   for (var i = 0; i < particles; i++) {
-    for (var j = 0; j < 13; j++) {
-      dummy = datapoints.getFloat64((i*13+j)*8, true);
+    for (var j = 0; j < 17; j++) {
+      dummy = datapoints.getFloat64((i*17+j)*8, true);
       // normalize
       if (maxOfColumn[j] > minOfColumn[j]) {
-        datapoints.setFloat64((i*13+j)*8, normalizingScale * (dummy - minOfColumn[j]) / (maxOfColumn[j] - minOfColumn[j]), true);
+        datapoints.setFloat64((i*17+j)*8, normalizingScale * (dummy - minOfColumn[j]) / (maxOfColumn[j] - minOfColumn[j]), true);
       } else { //center
-        datapoints.setFloat64((i*13+j)*8, 0, true);
+        datapoints.setFloat64((i*17+j)*8, 0, true);
       }
     }
   }
@@ -131,14 +131,14 @@ function initialDraw(Mapping, X, Y, Z, R)
   var tempColor, dummy;
   for (var i = 0; i < particles; i++) {
     // set positions
-    positions[i*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*13+mapping.x)*8, true) * X / normalizingScale : 0;
-    positions[i*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*13+mapping.y)*8, true) * Y / normalizingScale : 0;
-    positions[i*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*13+mapping.z)*8, true) * Z / normalizingScale : 0;
+    positions[i*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*17+mapping.x)*8, true) * X / normalizingScale : 0;
+    positions[i*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*17+mapping.y)*8, true) * Y / normalizingScale : 0;
+    positions[i*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*17+mapping.z)*8, true) * Z / normalizingScale : 0;
 
     // set colors
     if (mapping.c == -1) continue;
     tempColor = new THREE.Color(0x000000);
-    dummy = datapoints.getFloat64((i*13+mapping.c)*8, true);
+    dummy = datapoints.getFloat64((i*17+mapping.c)*8, true);
     if (isNaN(dummy)) {
       positions[i*3] = NaN;
       continue;
@@ -164,9 +164,9 @@ function updateDraw(X, Y, Z, R)
   var positions = geometry.attributes.position.array;
 
   for(var i = 0; i < particles; i++) {
-    if (mapping.x != -1 && !isNaN(positions[i*3])) positions[i*3] = datapoints.getFloat64((i*13+mapping.x)*8, true) * X / normalizingScale;
-    if (mapping.y != -1 && !isNaN(positions[i*3+1])) positions[i*3+1] = datapoints.getFloat64((i*13+mapping.y)*8, true) * Y / normalizingScale;
-    if (mapping.z != -1 && !isNaN(positions[i*3+2])) positions[i*3+2] = datapoints.getFloat64((i*13+mapping.z)*8, true) * Z / normalizingScale;
+    if (mapping.x != -1 && !isNaN(positions[i*3])) positions[i*3] = datapoints.getFloat64((i*17+mapping.x)*8, true) * X / normalizingScale;
+    if (mapping.y != -1 && !isNaN(positions[i*3+1])) positions[i*3+1] = datapoints.getFloat64((i*17+mapping.y)*8, true) * Y / normalizingScale;
+    if (mapping.z != -1 && !isNaN(positions[i*3+2])) positions[i*3+2] = datapoints.getFloat64((i*17+mapping.z)*8, true) * Z / normalizingScale;
   }
   geometry.attributes.position.needsUpdate = true;
   particleSystem.material.size = R / 0.5;
