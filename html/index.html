@@ -84,23 +84,13 @@
 
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '/data/lehd/pa_od_main_JT00_2011_large.txt', true);
-        //xhr.overrideMimeType('text/plain; charset=x-user-defined');
+        //xhr.overrideMimeType('text\/plain; charset=x-user-defined');
         xhr.responseType = 'arraybuffer';
         
         xhr.onload = function(e) {
           var buf = this.response;
-          //var stream = new DataStream(buf, 0, DataStream.LITTLE_ENDIAN);
 
           var datapoints = [["work_geo", "work_geo lat", "work_geo long", "residence_geo", "residence_geo lat", "residence_geo long", "total jobs", "#jobs age 29 or younger", "#jobs age 30 to 54", "#jobs age 55 or older", "#jobs earning $1250/month or less", "#jobs earning $1251/month to $3333/month", "#jobs earning greater than $3333/month", "#jobs in Goods producing", "#jobs in trade, transportation, and utilities", "#jobs in all other services", "date"]];
-          /*var tempdata = [];
-          for (var i = 0; i < buf.byteLength; ) {
-            tempdata.push(stream.readFloat64().toString());
-            i += 8;
-            if (i % (8*13) == 0) {
-              if (tempdata.length > 0) datapoints.push(tempdata);
-              tempdata = [];
-            }
-          }*/
 
           $('.dimension-mapper').each(function(d) {
             var dropdownId = '';
@@ -116,30 +106,11 @@
             jQuery(this).html(newHTML);
           });
 
-          init($('#drawCanvas'), $('#stat'), buf/*datapoints*/);
+          init($('#drawCanvas'), $('#stat'), buf);
 
         };
 
         xhr.send();
-
-        /*$.get('data/lehd/pa_rac_S000_JT00_2011_medium.json',function(datapoints) {
-          // adding data dimensions to dimension mapping dropdowns
-          $('.dimension-mapper').each(function(d) {
-            var dropdownId = '';
-            if (d == 0) { dropdownId = 'xDimensionDropdown'; }
-            else if (d == 1) { dropdownId = 'yDimensionDropdown'; }
-            else if (d == 2) { dropdownId = 'zDimensionDropdown'; }
-            else if (d == 3) { dropdownId = 'cDimensionDropdown'; }
-            else {dropdownId = 'tDimensionDropdown'; }
-            var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'NONE\',-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
-            datapoints[0].forEach(function(e, i, a){
-              newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'' + e + '\',' + i + ');">' + e + '</a></li>\n';
-            });
-            jQuery(this).html(newHTML);
-          });
-
-          init($('#drawCanvas'), $('#stat'), datapoints);
-        });*/
 
       });
     </script>
