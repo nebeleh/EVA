@@ -2,8 +2,8 @@
 
 var renderer, camera, scence, controls, stats, axisHelper;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var particleSystem, sprite, geometry;
-var datapoints, numberOfDatapoints, minOfColumn, maxOfColumn, mapping, normalizingScale = 10;
+var particleSystem, particles, sprite, geometry;
+var datapoints, minOfColumn, maxOfColumn, mapping, normalizingScale = 10;
 
 function init($container, $stat, rawdata) {
   // perfome preprocessing on rawdata
@@ -19,33 +19,20 @@ function init($container, $stat, rawdata) {
    }*/
   //isTime[0] = 1;
 
-  // parsing data points
-/*  for (var i = 1; i < rawdata.length; i++) {
-    var tempdata = [];
-    for (var d = 0; d < rawdata[0].length; d++) {
-      if (isTime[d]) { tempdata[d] = Date.parse(rawdata[i][d]); }
-      else { tempdata[d] = parseFloat(rawdata[i][d]); }
-
-      if (!isNaN(tempdata[d])) {
-        minOfColumn[d] = (minOfColumn[d] <= tempdata[d]) ? minOfColumn[d] : tempdata[d];
-        maxOfColumn[d] = (maxOfColumn[d] >= tempdata[d]) ? maxOfColumn[d] : tempdata[d];
-      }
-    }
-    datapoints.push(tempdata);
-  }*/
-
-  numberOfDatapoints = rawdata.byteLength / (8*13);
+  particles = rawdata.byteLength / (8*13);
   datapoints = new DataView(rawdata);
   var dummy;
-  for (var i = 0; i < numberOfDatapoints; i++) {
+  for (var i = 0; i < particles; i++) {
     for (var j = 0; j < 13; j++) {
-      dummy = datapoints.getFloat64((i*13+j)*8, true);      
-      minOfColumn[j] = (minOfColumn[j] <= dummy) ? minOfColumn[j] : dummy;
-      maxOfColumn[j] = (maxOfColumn[j] >= dummy) ? maxOfColumn[j] : dummy;
+      dummy = datapoints.getFloat64((i*13+j)*8, true);
+      if (!isNaN(dummy)) {
+        minOfColumn[j] = (minOfColumn[j] <= dummy) ? minOfColumn[j] : dummy;
+        maxOfColumn[j] = (maxOfColumn[j] >= dummy) ? maxOfColumn[j] : dummy;
+      }
     }
   }
 
-  for (var i = 0; i < numberOfDatapoints; i++) {
+  for (var i = 0; i < particles; i++) {
     for (var j = 0; j < 13; j++) {
       dummy = datapoints.getFloat64((i*13+j)*8, true);
       // normalize
@@ -133,75 +120,34 @@ function initialDraw(Mapping, X, Y, Z, R)
 {
   mapping = Mapping;
   scene.remove(particleSystem);
-
-  // first, select non-empty data points and save their location and color
- /* var showableData = [];
-  if (mapping.x != -1 || mapping.y != -1 || mapping.z != -1 || mapping.c != -1 || mapping.t != -1) {
-    for (var i = 0; i < numberOfDatapoints; i++) {
-      var x = 0, y = 0, z = 0, t = 0;
-      var tempColor = new THREE.Color(0x000000);
-      
-      // if one of assigned mappings has null data, remove it
-      if (mapping.x != -1) {
-        if (isNaN(datapoints[i][mapping.x])) continue;
-        x = datapoints[i][mapping.x] * X / normalizingScale;
-      }
-
-      if (mapping.y != -1) {
-        if (isNaN(datapoints[i][mapping.y])) continue;
-        y = datapoints[i][mapping.y] * Y / normalizingScale;
-      }
-
-      if (mapping.z != -1) {
-        if (isNaN(datapoints[i][mapping.z])) continue;
-        z = datapoints[i][mapping.z] * Z / normalizingScale;
-      }
-
-      if (mapping.t != -1) {
-        if (isNaN(datapoints[i][mapping.t])) continue;
-        t = datapoints[i][mapping.t];
-      }
-
-      if (mapping.c != -1) {
-        if (isNaN(datapoints[i][mapping.c])) continue;
-        tempColor.setHSL(datapoints[i][mapping.c] / normalizingScale * 0.8 + 0.2, 1.0, 0.5);
-      }
-      showableData.push(x, y, z, tempColor.r, tempColor.g, tempColor.b, i);
-    }
-  }
-  var particles = showableData.length / 7;*/
-  var particles = numberOfDatapoints;
+  
   geometry = new THREE.BufferGeometry();
   geometry.addAttribute('position', Float32Array, particles, 3);
   geometry.addAttribute('color', Float32Array, particles, 3);
-  geometry.addAttribute('dataindex', Float32Array, particles, 1);
 
   var positions = geometry.attributes.position.array;
   var colors = geometry.attributes.color.array;
-  var dataindex = geometry.attributes.dataindex.array;
 
-  console.log('going to draw ' + particles + ' particles.');
-
-  var tempColor;
+  var tempColor, dummy;
   for (var i = 0; i < particles; i++) {
-    positions[i*3]   = datapoints.getFloat64((i*13+mapping.x)*8, true) * X / normalizingScale;
-    positions[i*3+1] = datapoints.getFloat64((i*13+mapping.y)*8, true) * Y / normalizingScale;
-    positions[i*3+2] = datapoints.getFloat64((i*13+mapping.z)*8, true) * Z / normalizingScale;
+    // set positions
+    positions[i*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*13+mapping.x)*8, true) * X / normalizingScale : 0;
+    positions[i*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*13+mapping.y)*8, true) * Y / normalizingScale : 0;
+    positions[i*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*13+mapping.z)*8, true) * Z / normalizingScale : 0;
+
+    // set colors
+    if (mapping.c == -1) continue;
     tempColor = new THREE.Color(0x000000);
-    tempColor.setHSL(datapoints.getFloat64((i*13+mapping.c)*8, true) / normalizingScale * .8 + .2, 1., .5);
+    dummy = datapoints.getFloat64((i*13+mapping.c)*8, true);
+    if (isNaN(dummy)) {
+      positions[i*3] = NaN;
+      continue;
+    }
+    tempColor.setHSL(dummy / normalizingScale * .8 + .2, 1., .5);
     colors[i*3]   = tempColor.r;
     colors[i*3+1] = tempColor.g;
     colors[i*3+2] = tempColor.b;
-/*    positions[i*3] = showableData[i*7];
-    positions[i*3+1] = showableData[i*7+1];
-    positions[i*3+2] = showableData[i*7+2];
-    colors[i*3] = showableData[i*7+3];
-    colors[i*3+1] = showableData[i*7+4];
-    colors[i*3+2] = showableData[i*7+5];
-    dataindex[i] = showableData[i*7+6];*/
   }
-
-  console.log(positions[0], positions[1], positions[2]);
 
   geometry.computeBoundingSphere();
   var material = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending, transparent: true,*/ size: R / 0.5, vertexColors: true});
@@ -216,12 +162,11 @@ function updateDraw(X, Y, Z, R)
 {
   var x, y, z;
   var positions = geometry.attributes.position.array;
-  var dataindex = geometry.attributes.dataindex.array;
 
-  for(var i = 0; i < dataindex.length; i++) {
-    if (mapping.x != -1) positions[i*3] = datapoints[dataindex[i]][mapping.x] * X / normalizingScale;
-    if (mapping.y != -1) positions[i*3+1] = datapoints[dataindex[i]][mapping.y] * Y / normalizingScale;
-    if (mapping.z != -1) positions[i*3+2] = datapoints[dataindex[i]][mapping.z] * Z / normalizingScale;
+  for(var i = 0; i < particles; i++) {
+    if (mapping.x != -1 && !isNaN(positions[i*3])) positions[i*3] = datapoints.getFloat64((i*13+mapping.x)*8, true) * X / normalizingScale;
+    if (mapping.y != -1 && !isNaN(positions[i*3+1])) positions[i*3+1] = datapoints.getFloat64((i*13+mapping.y)*8, true) * Y / normalizingScale;
+    if (mapping.z != -1 && !isNaN(positions[i*3+2])) positions[i*3+2] = datapoints.getFloat64((i*13+mapping.z)*8, true) * Z / normalizingScale;
   }
   geometry.attributes.position.needsUpdate = true;
   particleSystem.material.size = R / 0.5;

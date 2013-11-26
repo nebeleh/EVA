@@ -1,0 +1,4 @@
+w_geocode,h_geocode,Total number of jobs,Number of jobs of workers age 29 or younger,number of jobs for workers age 30 to 54,number of jobs for workers age 55 or older,number of jobs with earnings $1250/month or less,number of jobs with earnings $1251/month to $3333/month,number of jobs with earnings greater than $3333/month,number of jobs in goods producing industry sectors,number of jobs in trade/transportation and utilities industry sectors,number of jobs in all other services industry sectors,date on which data was created formatted as YYYYMMDD
+1,2,3,4,5,6,7,8,9,10,11,12,13
+13,12,11,10,9,8,7,6,5,4,3,2,1
+0,-1,-2,-3,-4,-5,-6,-7,,-9,-10,-11,-12

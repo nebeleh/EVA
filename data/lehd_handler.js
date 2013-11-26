@@ -12,7 +12,7 @@ var lineReader = require('line-reader');
 var processData = function(sourceFile) {
 
   var basename = path.basename(sourceFile, path.extname(sourceFile));
-  var destFile = path.dirname(sourceFile) + '/' + basename + '.bin';
+  var destFile = path.dirname(sourceFile) + '/' + basename + '.txt'; // save destination file as txt in order to force node.js to gzip the file and cache it
 
   if (fs.existsSync(destFile)) {
     console.log('Destination file ' + destFile + ' already exists. Doing nothing ...');
