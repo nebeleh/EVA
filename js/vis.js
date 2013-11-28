@@ -133,12 +133,9 @@ function updateDraw(X, Y, Z, R)
   var x, y, z;
   var positions = geometry.attributes.position.array;
 
-  for(var i = 0; i < particles; i++) {
-    if (mapping.x != -1 && !isNaN(positions[i*3])) positions[i*3] = datapoints.getFloat64((i*dimensions+mapping.x)*8, true) * X / normalizingScale;
-    if (mapping.y != -1 && !isNaN(positions[i*3+1])) positions[i*3+1] = datapoints.getFloat64((i*dimensions+mapping.y)*8, true) * Y / normalizingScale;
-    if (mapping.z != -1 && !isNaN(positions[i*3+2])) positions[i*3+2] = datapoints.getFloat64((i*dimensions+mapping.z)*8, true) * Z / normalizingScale;
-  }
-  geometry.attributes.position.needsUpdate = true;
+  particleSystem.scale.x = X / normalizingScale;
+  particleSystem.scale.y = Y / normalizingScale;
+  particleSystem.scale.z = Z / normalizingScale;
   particleSystem.material.size = R / 0.5;
 }
 
