@@ -1,6 +1,6 @@
 // used code from http://stemkoski.github.io/Three.js/Graphulus-Surface.html
 
-var renderer, camera, scence, controls, stats, axisHelper;
+var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, particles, geometry;
 var datapoints, mapping, normalizingScale = 10, dimensions;
@@ -27,6 +27,39 @@ function init($container, $stat, rawdata, metaData) {
   
   // scene
   scene = new THREE.Scene();
+
+  // testing CSS 3D with iframe
+  // -------------------------------------------------------
+  var planeMaterial = new THREE.MeshBasicMaterial({wireframe: true});
+  planeMaterial.color.set('black');
+  planeMaterial.opacity = 0.5;
+  planeMaterial.blending = THREE.NoBlending;
+  var planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), planeMaterial);
+
+  scene.add(planeMesh);
+
+  var element = document.createElement('iframe');
+  element.src = 'http://maps.google.com/maps?output=embed';
+  element.style.width = '512px';
+  element.style.height = '512px';
+
+  cssObject = new THREE.CSS3DObject(element);
+  cssObject.position = planeMesh.position;
+  cssObject.rotation = planeMesh.rotation;
+  cssObject.scale.multiplyScalar(1/(window.innerWidth / 61.7));
+
+  sceneCSS = new THREE.Scene();
+  sceneCSS.add(cssObject);
+
+  rendererCSS = new THREE.CSS3DRenderer();
+  rendererCSS.setSize(window.innerWidth, window.innerHeight);
+  rendererCSS.domElement.style.position = 'absolute';
+  rendererCSS.domElement.style.top = 0;
+  rendererCSS.domElement.style.margin = 0;
+  rendererCSS.domElement.style.padding = 0;
+  $container.append(rendererCSS.domElement);
+
+  // --------------------------------------------------------
 
   // stats
   stats = new Stats();
@@ -148,6 +181,7 @@ function calcWindowResize(renderer, camera)
   var callback = function(){
     var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
     renderer.setSize(WIDTH, HEIGHT);
+    rendererCSS.setSize(WIDTH, HEIGHT);
     if (camera instanceof THREE.PerspectiveCamera)
     {
       camera.aspect = WIDTH/HEIGHT;
@@ -171,6 +205,7 @@ function animate()
 {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
+  rendererCSS.render(sceneCSS, camera);
   update();
 }
 
