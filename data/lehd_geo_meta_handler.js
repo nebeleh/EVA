@@ -51,6 +51,7 @@ var processData = function(sourceFile, geoFile) {
 function CSVToBin(sourceFile, destFile, geoFile, dataClass, destJSON, strDelimiter) {
 
   // create column name hashmap
+  // TODO: don't add ' to texts. client's dropdown list cannot handle it now.
   var namemap = new HashMap();
   namemap.set('w_geocode', 'Workplace Census Block Code');
   namemap.set('h_geocode', 'Residence Census Block Code');
@@ -103,7 +104,7 @@ function CSVToBin(sourceFile, destFile, geoFile, dataClass, destJSON, strDelimit
   namemap.set('CD01', '#j for workers with educational attainment: less than high school');
   namemap.set('CD02', '#j for workers with educational attainment: high school or equivalent, no college');
   namemap.set('CD03', '#j for workers with educational attainment: some college or associate degree');
-  namemap.set('CD04', '#j for workers with educational attainment: bachelor\'s degree or advanced degree');
+  namemap.set('CD04', '#j for workers with educational attainment: bachelor degree or advanced degree');
   namemap.set('CS01', '#j for workers with sex: male');
   namemap.set('CS02', '#j for workers with sex: female');
   namemap.set('CFA01', '#j for workers at firms with firm age: 0-1 years');

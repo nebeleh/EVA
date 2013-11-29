@@ -12,21 +12,45 @@ function init($container, $stat, rawdata, metaData) {
   particles = rawdata.byteLength / (8*dimensions);
   datapoints = new DataView(rawdata);
   
+  var mercatorScaleLat = 1.325; // TODO: dummy variable, remove in the future
+  var mercatorOffsetLat = .075;
+  var mercatorScaleLong = 0.997;
+  var mercatorOffsetLong = 0.007;
+
   // normalizations
   for (var i = 0; i < particles; i++) {
-    for (var j = 0; j < dimensions; j++) {
+    for (var j = dimensions-1; j >= 0; j--) {
       dummy = datapoints.getFloat64((i*dimensions+j)*8, true);
       // normalize
-      if (metaData.maxOfColumn[j] > metaData.minOfColumn[j]) {
+      // treat lat longs differently
+      if (j == 1) { // lat longs for this dataset
+        datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat, true);
+      } else if (j == 2) {
+        datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong, true);
+      } else if (j >= 4 && j <= 43) {
+        var totalJobs = datapoints.getFloat64((i*dimensions+3)*8, true);
+        datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * dummy / totalJobs, true);
+      } else if (metaData.maxOfColumn[j] > metaData.minOfColumn[j]) {
         datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]), true);
       } else { //center
         datapoints.setFloat64((i*dimensions+j)*8, 0, true);
       }
+
+      // TODO: replace with a better idea
+      dummy = datapoints.getFloat64((i*dimensions+j)*8, true);
+      if (j == 1)
+        datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLat, true);
+      else if (j == 2)
+        datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLong, true);
     }
   }
   
   // scene
   scene = new THREE.Scene();
+
+  var mapWidth = 100;
+  var mapHeight = 60;
+  var mapResolution = 85;
 
   // adding Google Maps iframe layer to visualization
   var planeMaterial = new THREE.MeshBasicMaterial();
@@ -34,19 +58,24 @@ function init($container, $stat, rawdata, metaData) {
   planeMaterial.opacity = 0;
   planeMaterial.side = THREE.DoubleSide;
   planeMaterial.blending = THREE.NoBlending;
-  planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), planeMaterial);
+  planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
+  planeMesh.translateX(mapWidth/2);
+  planeMesh.translateY(mapHeight/2);
 
   scene.add(planeMesh);
 
   var element = document.createElement('iframe');
-  element.src = 'http://maps.google.com/maps?output=embed';
-  element.style.width = '512px';
-  element.style.height = '512px';
+  var mapsURL = 'http://maps.google.com/maps?ll='+(metaData.minOfColumn[1]+metaData.maxOfColumn[1])/2+','+(metaData.minOfColumn[2]+metaData.maxOfColumn[2])/2+'&z=11&output=embed';
+  //console.log(mapsURL);
+  element.src = mapsURL;
+  element.style.width = mapResolution * mapWidth + 'px';
+  element.style.height = mapResolution * mapHeight + 'px';
 
   cssObject = new THREE.CSS3DObject(element);
   cssObject.position = planeMesh.position;
+  cssObject.position.z -= 0.01;
   cssObject.rotation = planeMesh.rotation;
-  cssObject.scale.multiplyScalar(1/(window.innerWidth / 61.7));
+  cssObject.scale.multiplyScalar((40*48/mapResolution)/window.innerWidth);
 
   sceneCSS = new THREE.Scene();
   sceneCSS.add(cssObject);
@@ -152,7 +181,7 @@ function initialDraw(Mapping, X, Y, Z, R)
   }
   
   geometry.computeBoundingSphere();
-  var material = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending, transparent: true,*/ size: R / 0.5, vertexColors: true});
+  var material = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending, transparent: true,*/ size: R , vertexColors: true});
   particleSystem = new THREE.ParticleSystem(geometry, material);
   scene.add(particleSystem);
   
@@ -166,7 +195,7 @@ function updateDraw(X, Y, Z, R)
     particleSystem.scale.x = X / normalizingScale;
     particleSystem.scale.y = Y / normalizingScale;
     particleSystem.scale.z = Z / normalizingScale;
-    particleSystem.material.size = R / 0.5;
+    particleSystem.material.size = R;
   }
 }
 
