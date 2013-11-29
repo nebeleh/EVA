@@ -212,8 +212,8 @@ THREE.CSS3DRenderer = function () {
 
 		var style = "translate3d(0,0," + fov + "px)" + getCameraCSSMatrix( camera.matrixWorldInverse ) +
 			" translate3d(" + _widthHalf + "px," + _heightHalf + "px, 0)";
-
-		cameraElement.style.WebkitTransform = style;
+		
+    cameraElement.style.WebkitTransform = style;
 		cameraElement.style.MozTransform = style;
 		cameraElement.style.oTransform = style;
 		cameraElement.style.transform = style;

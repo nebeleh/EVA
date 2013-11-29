@@ -1,6 +1,6 @@
 // used code from http://stemkoski.github.io/Three.js/Graphulus-Surface.html
 
-var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject;
+var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, planeMesh;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, particles, geometry;
 var datapoints, mapping, normalizingScale = 10, dimensions;
@@ -28,13 +28,13 @@ function init($container, $stat, rawdata, metaData) {
   // scene
   scene = new THREE.Scene();
 
-  // testing CSS 3D with iframe
-  // -------------------------------------------------------
-  var planeMaterial = new THREE.MeshBasicMaterial({wireframe: true});
+  // adding Google Maps iframe layer to visualization
+  var planeMaterial = new THREE.MeshBasicMaterial();
   planeMaterial.color.set('black');
-  planeMaterial.opacity = 0.5;
+  planeMaterial.opacity = 0;
+  planeMaterial.side = THREE.DoubleSide;
   planeMaterial.blending = THREE.NoBlending;
-  var planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), planeMaterial);
+  planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), planeMaterial);
 
   scene.add(planeMesh);
 
@@ -50,7 +50,7 @@ function init($container, $stat, rawdata, metaData) {
 
   sceneCSS = new THREE.Scene();
   sceneCSS.add(cssObject);
-
+  
   rendererCSS = new THREE.CSS3DRenderer();
   rendererCSS.setSize(window.innerWidth, window.innerHeight);
   rendererCSS.domElement.style.position = 'absolute';
@@ -59,24 +59,23 @@ function init($container, $stat, rawdata, metaData) {
   rendererCSS.domElement.style.padding = 0;
   $container.append(rendererCSS.domElement);
 
-  // --------------------------------------------------------
-
   // stats
   stats = new Stats();
   $stat.append(stats.domElement);
 
   // renderer
   if (window.WebGLRenderingContext)
-    renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer({antialias: true});
   else
     renderer = new THREE.CanvasRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0xffffff, 1);
   renderer.domElement.style.position = 'absolute';
   renderer.domElement.style.top = '0px';
   renderer.domElement.style.left = '0px';
   renderer.domElement.style.zIndex = 0;
   $container.append(renderer.domElement);
-
+  
   // camera
   setCameraType("perspective");
   scene.add(camera);
@@ -163,25 +162,23 @@ function initialDraw(Mapping, X, Y, Z, R)
 
 function updateDraw(X, Y, Z, R)
 {
-  var x, y, z;
-  var positions = geometry.attributes.position.array;
-
-  particleSystem.scale.x = X / normalizingScale;
-  particleSystem.scale.y = Y / normalizingScale;
-  particleSystem.scale.z = Z / normalizingScale;
-  particleSystem.material.size = R / 0.5;
+  if (particleSystem) {
+    particleSystem.scale.x = X / normalizingScale;
+    particleSystem.scale.y = Y / normalizingScale;
+    particleSystem.scale.z = Z / normalizingScale;
+    particleSystem.material.size = R / 0.5;
+  }
 }
 
 function updateInfo() {
   $('#eventsindicator').text(particleSystem ? particleSystem.geometry.attributes.position.array.length/3 : 0);
 }
 
-function calcWindowResize(renderer, camera)
+function calcWindowResize(rend, camera)
 {
   var callback = function(){
     var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
-    renderer.setSize(WIDTH, HEIGHT);
-    rendererCSS.setSize(WIDTH, HEIGHT);
+    rend.setSize(WIDTH, HEIGHT);
     if (camera instanceof THREE.PerspectiveCamera)
     {
       camera.aspect = WIDTH/HEIGHT;
@@ -245,9 +242,15 @@ function setCameraType(type)
 
   // events
   calcWindowResize(renderer, camera);
+  calcWindowResize(rendererCSS, camera);
 
   // controls
   controls = new THREE.TrackballControls(camera, renderer.domElement);
+  controls.noZoom = false;
+  controls.noPan = false;
+  controls.staticMoving = false;
+  controls.dynamicDampingFactor = 0.3;
+  controls.keys = [65, 83, 68];
 }
 
 function setCameraZ()
