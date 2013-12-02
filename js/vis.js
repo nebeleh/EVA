@@ -66,7 +66,6 @@ function init($container, $stat, rawdata, metaData) {
 
   var element = document.createElement('iframe');
   var mapsURL = 'http://maps.google.com/maps?ll='+(metaData.minOfColumn[1]+metaData.maxOfColumn[1])/2+','+(metaData.minOfColumn[2]+metaData.maxOfColumn[2])/2+'&z=11&output=embed';
-  //console.log(mapsURL);
   element.src = mapsURL;
   element.style.width = mapResolution * mapWidth + 'px';
   element.style.height = mapResolution * mapHeight + 'px';
@@ -162,9 +161,9 @@ function initialDraw(Mapping, X, Y, Z, R)
   var tempColor, dummy;
   for (var i = 0; i < particles; i++) {
     // set positions
-    positions[i*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*dimensions+mapping.x)*8, true) * X / normalizingScale : 0;
-    positions[i*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*dimensions+mapping.y)*8, true) * Y / normalizingScale : 0;
-    positions[i*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*dimensions+mapping.z)*8, true) * Z / normalizingScale : 0;
+    positions[i*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*dimensions+mapping.x)*8, true) : 0;
+    positions[i*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*dimensions+mapping.y)*8, true) : 0;
+    positions[i*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*dimensions+mapping.z)*8, true) : 0;
 
     // set colors
     if (mapping.c == -1) continue;
@@ -181,8 +180,11 @@ function initialDraw(Mapping, X, Y, Z, R)
   }
   
   geometry.computeBoundingSphere();
-  var material = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending, transparent: true,*/ size: R , vertexColors: true});
+  var material = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending,*/ transparent: true, size: R, vertexColors: true, opacity: 0.5});
   particleSystem = new THREE.ParticleSystem(geometry, material);
+  particleSystem.scale.x = X / normalizingScale;
+  particleSystem.scale.y = Y / normalizingScale;
+  particleSystem.scale.z = Z / normalizingScale;
   scene.add(particleSystem);
   
   updateInfo();
