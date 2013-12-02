@@ -1,24 +1,25 @@
 // used code from http://stemkoski.github.io/Three.js/Graphulus-Surface.html
 
-var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, planeMesh;
+var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var particleSystem, particles, geometry;
+var particleSystem, totalParticles, particleMaterial, currFrame;
 var datapoints, mapping, normalizingScale = 10, dimensions;
+var X, Y, Z, R;
 
 function init($container, $stat, rawdata, metaData) {
   // perfome preprocessing on rawdata
   dimensions = metaData.BINcolumns;
 
-  particles = rawdata.byteLength / (8*dimensions);
+  totalParticles = rawdata.byteLength / (8*dimensions);
   datapoints = new DataView(rawdata);
-  
+
   var mercatorScaleLat = 1.325; // TODO: dummy variable, remove in the future
   var mercatorOffsetLat = .075;
   var mercatorScaleLong = 0.997;
   var mercatorOffsetLong = 0.007;
 
   // normalizations
-  for (var i = 0; i < particles; i++) {
+  for (var i = 0; i < totalParticles; i++) {
     for (var j = dimensions-1; j >= 0; j--) {
       dummy = datapoints.getFloat64((i*dimensions+j)*8, true);
       // normalize
@@ -44,7 +45,7 @@ function init($container, $stat, rawdata, metaData) {
         datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLong, true);
     }
   }
-  
+
   // scene
   scene = new THREE.Scene();
 
@@ -58,7 +59,7 @@ function init($container, $stat, rawdata, metaData) {
   planeMaterial.opacity = 0;
   planeMaterial.side = THREE.DoubleSide;
   planeMaterial.blending = THREE.NoBlending;
-  planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
+  var planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
   planeMesh.translateX(mapWidth/2);
   planeMesh.translateY(mapHeight/2);
 
@@ -78,7 +79,7 @@ function init($container, $stat, rawdata, metaData) {
 
   sceneCSS = new THREE.Scene();
   sceneCSS.add(cssObject);
-  
+
   rendererCSS = new THREE.CSS3DRenderer();
   rendererCSS.setSize(window.innerWidth, window.innerHeight);
   rendererCSS.domElement.style.position = 'absolute';
@@ -103,7 +104,7 @@ function init($container, $stat, rawdata, metaData) {
   renderer.domElement.style.left = '0px';
   renderer.domElement.style.zIndex = 0;
   $container.append(renderer.domElement);
-  
+
   // camera
   setCameraType("perspective");
   scene.add(camera);
@@ -146,53 +147,109 @@ function init($container, $stat, rawdata, metaData) {
 }
 
 
-function initialDraw(Mapping, X, Y, Z, R)
+function initialDraw(Mapping, uX, uY, uZ, uR)
 {
   mapping = Mapping;
-  scene.remove(particleSystem);
-  
-  geometry = new THREE.BufferGeometry();
-  geometry.addAttribute('position', Float32Array, particles, 3);
-  geometry.addAttribute('color', Float32Array, particles, 3);
+  X = uX;
+  Y = uY;
+  Z = uZ;
+  R = uR;
+  currFrame = 0;
+//  scene.remove(particleSystem);
 
-  var positions = geometry.attributes.position.array;
-  var colors = geometry.attributes.color.array;
+  // creating the basic structure of frames
+  frames = {};
+  // TODO: also if maxOfColumn_updated[t] == min.., only make 1 frame as you cannot divide it 
+  // into different frames
+  if (mapping.t == -1)
+    frames.frameno = 1;
+  else
+    frames.frameno = 10; // TODO: receive number of buckets from user
 
-  var tempColor, dummy;
-  for (var i = 0; i < particles; i++) {
-    // set positions
-    positions[i*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*dimensions+mapping.x)*8, true) : 0;
-    positions[i*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*dimensions+mapping.y)*8, true) : 0;
-    positions[i*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*dimensions+mapping.z)*8, true) : 0;
-
-    // set colors
-    if (mapping.c == -1) continue;
-    tempColor = new THREE.Color(0x000000);
-    dummy = datapoints.getFloat64((i*dimensions+mapping.c)*8, true);
-    if (isNaN(dummy)) {
-      positions[i*3] = NaN;
-      continue;
-    }
-    tempColor.setHSL(dummy / normalizingScale * .8 + .2, 1., .5);
-    colors[i*3]   = tempColor.r;
-    colors[i*3+1] = tempColor.g;
-    colors[i*3+2] = tempColor.b;
+  frames.frame = [];
+  for (var f = 0; f < frames.frameno; f++) {
+    frames.frame.push({});
+    frames.frame[f].particles = 0;
   }
-  
-  geometry.computeBoundingSphere();
-  var material = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending,*/ transparent: true, size: R, vertexColors: true, opacity: 0.5});
-  particleSystem = new THREE.ParticleSystem(geometry, material);
-  particleSystem.scale.x = X / normalizingScale;
-  particleSystem.scale.y = Y / normalizingScale;
-  particleSystem.scale.z = Z / normalizingScale;
-  scene.add(particleSystem);
-  
+
+  // finding number of particles in each frame
+  if (frames.frameno == 1)
+    frames.frame[0].particles = totalParticles;
+  else {
+    // TODO: windowSize = (maxOfColumn_updated - minOfColumn_updated) / frames.frameno;
+    var timeframeSize = 10 / frames.frameno;
+    var frameIndex;
+    for (var p = 0; p < totalParticles; p++) {
+      frameIndex = Math.floor((datapoints.getFloat64((p*dimensions+mapping.t)*8, true) /* TODO: - minOfColumn_updated */) / timeframeSize);
+      if (frameIndex == frames.frameno) frameIndex--;
+      frames.frame[frameIndex].particles++;
+    }
+  }
+
+  // finding x, y, z and color values for particles in each frame
+  for (var f = 0; f < frames.frameno; f++) {
+    frames.frame[f].geometry = new THREE.BufferGeometry();
+    frames.frame[f].geometry.addAttribute('position', Float32Array, frames.frame[f].particles, 3);
+    frames.frame[f].geometry.addAttribute('color', Float32Array, frames.frame[f].particles, 3);
+
+    var positions = frames.frame[f].geometry.attributes.position.array;
+    var colors = frames.frame[f].geometry.attributes.color.array;
+
+    var tempColor, dummy, frameIndex;
+    for (var i = 0, j = -1; i < totalParticles; i++) {
+      // proceed only if this particle belongs to this frame
+      // TODO: update with min, max, like the code a few lines above
+      if (frames.frameno > 1) {
+        frameIndex = Math.floor( datapoints.getFloat64((i*dimensions+mapping.t)*8, true) * frames.frameno / 10);
+        if (frameIndex == frames.frameno) frameIndex--;
+        if (frameIndex != f) continue;
+      }
+      
+      j++;
+
+      // set positions
+      positions[j*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*dimensions+mapping.x)*8, true) : 0;
+      positions[j*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*dimensions+mapping.y)*8, true) : 0;
+      positions[j*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*dimensions+mapping.z)*8, true) : 0;
+
+      // set colors
+      if (mapping.c == -1) continue;
+      tempColor = new THREE.Color(0x000000);
+      dummy = datapoints.getFloat64((i*dimensions+mapping.c)*8, true);
+      if (isNaN(dummy)) {
+        positions[j*3] = NaN;
+        continue;
+      }
+      tempColor.setHSL(dummy / normalizingScale * .8 + .2, 1., .5);
+      colors[j*3]   = tempColor.r;
+      colors[j*3+1] = tempColor.g;
+      colors[j*3+2] = tempColor.b;
+    }
+    frames.frame[f].geometry.computeBoundingSphere();
+  }
+  particleMaterial = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending,*/ transparent: true, size: R, vertexColors: true, opacity: 0.5});
+  // TODO: material.alphaTest = 0.5 --> apparently this solves the problem of z-index 
+  // for sprites
+  updateParticleSystem(currFrame);
   updateInfo();
 }
 
+function updateParticleSystem(frameIndex) {
+  scene.remove(particleSystem);
+  particleSystem = new THREE.ParticleSystem(frames.frame[frameIndex].geometry, particleMaterial);
+  particleSystem.scale.x = X / normalizingScale;
+  particleSystem.scale.y = Y / normalizingScale;
+  particleSystem.scale.z = Z / normalizingScale;
+  particleSystem.material.size = R;
+  scene.add(particleSystem);
+}
 
-function updateDraw(X, Y, Z, R)
+function updateDraw(uX, uY, uZ, uR)
 {
+  X = uX;
+  Y = uY;
+  Z = uZ;
+  R = uR;
   if (particleSystem) {
     particleSystem.scale.x = X / normalizingScale;
     particleSystem.scale.y = Y / normalizingScale;
@@ -229,9 +286,28 @@ function calcWindowResize(rend, camera)
   };
 }
 
+var lastTime = -1, currTime;
+function updateFrame() {
+  if (lastTime == -1) {
+    lastTime = Date.now();
+    currFrame = 0;
+  }
+  currTime = Date.now();
+
+  if (currTime >= lastTime + (currFrame == frames.frameno-1 ? 3000 : 1000)) {
+    lastTime = currTime;
+    currFrame = (currFrame + 1 ) % frames.frameno;
+    updateParticleSystem(currFrame);
+  }
+}
+
 function animate()
 {
   requestAnimationFrame(animate);
+  if (frames && frames.frameno > 1) {
+    updateFrame();
+    updateInfo();
+  }
   renderer.render(scene, camera);
   rendererCSS.render(sceneCSS, camera);
   update();
