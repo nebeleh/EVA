@@ -184,21 +184,21 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
 
   // create meta data JSON file
   if (dataClass === 'od') {
-    metaData.CSVcolumns = 13;
+    metaData.CSVcolumns = 14;
     metaData.censusBlock = Array.apply(null, new Array(metaData.CSVcolumns)).map(Number.prototype.valueOf, 0);
     metaData.censusBlock[0] = 1;
     metaData.censusBlock[1] = 1;
-    metaData.BINcolumns = 17;
+    metaData.BINcolumns = 18;
   } else if (dataClass === 'rac' ) {
-    metaData.CSVcolumns = 43;
+    metaData.CSVcolumns = 44;
     metaData.censusBlock = Array.apply(null, new Array(metaData.CSVcolumns)).map(Number.prototype.valueOf, 0);
     metaData.censusBlock[0] = 1;
-    metaData.BINcolumns = 45;
+    metaData.BINcolumns = 46;
   } else if (dataClass === 'wac') {
-    metaData.CSVcolumns = 53;
+    metaData.CSVcolumns = 54;
     metaData.censusBlock = Array.apply(null, new Array(metaData.CSVcolumns)).map(Number.prototype.valueOf, 0);
     metaData.censusBlock[0] = 1;
-    metaData.BINcolumns = 55;
+    metaData.BINcolumns = 56;
   } else {
     console.log('this data class not implemented yet.');
     return;
@@ -216,9 +216,11 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
 
   // combinding all files together and then reading it line by line
   // TODO: improving this section. there should be a better way
-  var cmd = 'rm combined.csv -f && cat ' + sourceFiles[0] + ' > combined.csv';
-  for (var f = 1; f < sourceFiles.length; f++) {
-    cmd += ' && tail -n +2 ' + sourceFiles[f] + ' >> combined.csv';
+  var cmd = 'rm combined.csv -f';
+  cmd += ' && head -n +1 ' + sourceFiles[0] + ' | awk \'{print $0, ",year"}\' > combined.csv'
+  for (var f = 0; f < sourceFiles.length; f++) {
+    var s = path.basename(sourceFiles[f], '.csv');
+    cmd += ' && tail -n +2 ' + sourceFiles[f] + ' | awk \'{print $0, ",' + s.slice(s.length-4) + '"}\' >> combined.csv';
   }
   child = exec(cmd, function (error, stdout, stderr) {
 
