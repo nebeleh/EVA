@@ -14,6 +14,9 @@ var fs = require('fs');
 var path = require('path');
 var HashMap = require('hashmap').HashMap;
 var lineReader = require('line-reader');
+var util = require('util');
+var exec = require('child_process').exec;
+var child;
 
 var metaData = {};
 
@@ -55,7 +58,6 @@ var processData = function(files) {
 
   // check for source csv files
   var csvFiles = files.slice(2);
-  var dataClass = '';
   for (var f = 0; f < csvFiles.length; f++) {
     if (!fs.existsSync(csvFiles[f])) {
       console.log('Source file ' + csvFiles[f] + ' doesn\'t exist. Doing nothing ...');
@@ -71,8 +73,8 @@ var processData = function(files) {
   metaData.filename = basename + '.txt';
   metaData.dataClass = dataClass;
 
-  console.log('Processing ' + sourceFile + ' with lat long help from ' + geoFile + ' and writing to ' + destFile + ' ...');
-  CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles);
+  console.log('Processing ' + basename + ' with lat long help from ' + geoFile + ' and writing to ' + destFile + ' ...');
+  CSVsToBin(destFile, geoFile, dataClass, destJSON, csvFiles);
 }
 
 // converts CSV to Binary file while adding lat and long based on census block code
@@ -209,11 +211,24 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
   var firstLine = true;
   var lineCounter = 0;
 
-  strDelimiter = (strDelimiter || ",");
+  var strDelimiter = ",";
   var objPattern = new RegExp(("(\\" + strDelimiter + "|\\r?\\n|\\r|^)" + "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" + "([^\"\\" + strDelimiter + "\\r\\n]*))"), "gi");
 
-  for (var f = 0; f < sourceFiles; f++) {
-    lineReader.eachLine(sourceFiles[f], function(line, last) {
+  // combinding all files together and then reading it line by line
+  // TODO: improving this section. there should be a better way
+  var cmd = 'rm combined.csv -f && cat ' + sourceFiles[0] + ' > combined.csv';
+  for (var f = 1; f < sourceFiles.length; f++) {
+    cmd += ' && tail -n +2 ' + sourceFiles[f] + ' >> combined.csv';
+  }
+  child = exec(cmd, function (error, stdout, stderr) {
+
+    if (error !== null) {
+      console.log('couldn\'t combine csv files: ' + error);
+      return;
+    }
+
+    // reading the combined file line by line
+    lineReader.eachLine('combined.csv', function(line, last) {
 
       // loop through everyline of CSV and convert it to binary data
       line += '\n';
@@ -299,15 +314,15 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
 
       // TODO write size of each row and number of rows to metadata JSON in order to make it easier for the client to load the data
       if (last) {
+        fs.closeSync(outStream);
+        fs.writeFileSync(destJSON, JSON.stringify(metaData));
+        console.log('Wrote ' + lineCounter + ' lines. All done.');
         return false;
       }
       return true;
 
     });
-  }
-  fs.closeSync(outStream);
-  fs.writeFileSync(destJSON, JSON.stringify(metaData));
-  console.log('Wrote ' + lineCounter + ' lines. All done.');
+  });
 }
 
 processData(process.argv.slice(2));
