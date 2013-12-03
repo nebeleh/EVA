@@ -219,6 +219,11 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
   var firstLine = true;
   var lineCounter = 0;
 
+  // calculate buffer size
+  var bufferSize = 0;
+  for (var b = 0; b < metaData.byteSchema.length; b++)
+    bufferSize += metaData.byteSchema[b];
+  
   var strDelimiter = ",";
   var objPattern = new RegExp(("(\\" + strDelimiter + "|\\r?\\n|\\r|^)" + "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" + "([^\"\\" + strDelimiter + "\\r\\n]*))"), "gi");
 
@@ -270,8 +275,9 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
               }
               firstLine = false;
             } else {
-              // TODO handle each type of data differently. right now I'm using doubles for everything, even strings
-              var buf = new Buffer(8 * (metaData.BINcolumns));
+              // create a buffer with the write size
+              var buf = new Buffer(bufferSize);
+              var offset = 0;
               for (var i = 0, j = 0; i < tempData.length; i++) {
                 dummy = parseFloat(tempData[i]);
 
@@ -281,7 +287,9 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
                   metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], dummy);
                 }
 
-                (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, (j++)*8) : buf.writeInt16LE(dummy, (j++)*8);
+                (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, offset) : buf.writeInt16LE(dummy, offset);
+                offset += metaData.byteSchema[j];
+                j++;
 
                 // write lat, long
                 if (metaData.censusBlock[i]) {
@@ -294,7 +302,9 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
                     metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], dummy);
                   }
 
-                  (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, (j++)*8) : buf.writeInt16LE(dummy, (j++)*8);
+                  (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, offset) : buf.writeInt16LE(dummy, offset);
+                  offset += metaData.byteSchema[j];
+                  j++;
 
                   dummy = geomap.get(censusBlock)[1];
 
@@ -303,7 +313,9 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
                     metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], dummy);
                   }
 
-                  (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, (j++)*8) : buf.writeInt16LE(dummy, (j++)*8);
+                  (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, offset) : buf.writeInt16LE(dummy, offset);
+                  offset += metaData.byteSchema[j];
+                  j++;
                }
               }
               lineCounter++;
