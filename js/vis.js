@@ -3,29 +3,37 @@
 var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame;
-var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema;
+var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets;
 var X, Y, Z, R;
 
 function readData(row, col) {
   if (byteSchema[col] == 8)
-    return datapoints.getFloat64((row*dimensions+col)*8, true);
+    return datapoints.getFloat64(row*byteOffsets[byteOffsets.length-1]+byteOffsets[col], true);
   else
-    return datapoints.getInt16((row*dimensions+col)*8, true);
+    return datapoints.getInt16(row*byteOffsets[byteOffsets.length-1]+byteOffsets[col], true);
 }
 
 function writeData(row, col, value) {
   if (byteSchema[col] == 8)
-    datapoints.setFloat64((row*dimensions+col)*8, value, true);
+    datapoints.setFloat64(row*byteOffsets[byteOffsets.length-1]+byteOffsets[col], value, true);
   else
-    datapoints.setInt16((row*dimensions+col)*8, value, true);
+    datapoints.setInt16(row*byteOffsets[byteOffsets.length-1]+byteOffsets[col], value, true);
 }
 
 function init($container, $stat, rawdata, metaData) {
   // perfome preprocessing on rawdata
   dimensions = metaData.BINcolumns;
   byteSchema = metaData.byteSchema;
+  
+  byteOffsets = [];
+  var offset = 0;
+  for (var i = 0; i < byteSchema.length; i++) {
+    byteOffsets.push(offset);
+    offset += byteSchema[i];
+  }
+  byteOffsets.push(offset);
 
-  totalParticles = rawdata.byteLength / (8*dimensions);
+  totalParticles = metaData.totalRows;
   datapoints = new DataView(rawdata);
 
   var mercatorScaleLat = 1.325; // TODO: dummy variable, remove in the future
@@ -36,34 +44,27 @@ function init($container, $stat, rawdata, metaData) {
   // normalizations
   for (var i = 0; i < totalParticles; i++) {
     for (var j = dimensions-1; j >= 0; j--) {
-      dummy = readData(i, j); //datapoints.getFloat64((i*dimensions+j)*8, true);
+      dummy = readData(i, j);
       // normalize
       // treat lat longs differently
       if (j == 1) { // lat longs for this dataset
-        //datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat, true);
         writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat);
       } else if (j == 2) {
-        //datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong, true);
         writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong);
       } else if (j >= 4 && j <= 43) {
-        var totalJobs = readData(i, j); //datapoints.getFloat64((i*dimensions+3)*8, true);
-        //datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * dummy / totalJobs, true);
-        writeData(i, j, normalizingScale * dummy / totalJobs);
+        var totalJobs = readData(i, j);
+        //writeData(i, j, normalizingScale * dummy / totalJobs);
       } else if (metaData.maxOfColumn[j] > metaData.minOfColumn[j]) {
-        //datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]), true);
-        writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]));
+        //writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]));
       } else { //center
-        //datapoints.setFloat64((i*dimensions+j)*8, 0, true);
         writeData(i, j, 0);
       }
 
       // TODO: replace with a better idea
       dummy = readData(i, j); //datapoints.getFloat64((i*dimensions+j)*8, true);
       if (j == 1)
-        //datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLat, true);
         writeData(i, j, dummy + mercatorOffsetLat);
       else if (j == 2)
-        //datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLong, true);
         writeData(i, j, dummy + mercatorOffsetLong);
     }
   }
