@@ -84,8 +84,9 @@ function init($container, $stat, rawdata, MetaData) {
   planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
   planeMesh.translateX(mapWidth/2);
   planeMesh.translateY(mapHeight/2);
+  planeMesh.visible = false;
 
-  //scene.add(planeMesh);
+  scene.add(planeMesh);
 
   var element = document.createElement('iframe');
   var mapsURL = 'http://maps.google.com/maps?ll='+(metaData.minOfColumn[1]+metaData.maxOfColumn[1])/2+','+(metaData.minOfColumn[2]+metaData.maxOfColumn[2])/2+'&z=11&output=embed';
@@ -97,10 +98,13 @@ function init($container, $stat, rawdata, MetaData) {
   cssObject.position = planeMesh.position;
   cssObject.position.z -= 0.01;
   cssObject.rotation = planeMesh.rotation;
-  cssObject.scale.multiplyScalar((40*48/mapResolution)/window.innerWidth);
+  cssObject.scale.multiplyScalar(1/mapResolution); //(40*48/mapResolution)/window.innerWidth);
 
   sceneCSS = new THREE.Scene();
-  //sceneCSS.add(cssObject);
+  sceneCSS.add(cssObject);
+  
+  cssObject.element.style.display = "none";
+  cssObject.visible = false;
 
   rendererCSS = new THREE.CSS3DRenderer();
   rendererCSS.setSize(window.innerWidth, window.innerHeight);
@@ -460,10 +464,12 @@ function setGridYZ(s)
 
 function setGeoLayer(s) {
   if (s) {
-    scene.add(planeMesh);
-    sceneCSS.add(cssObject);
+    cssObject.element.style.display = "";
+    cssObject.visible = true;
+    planeMesh.visible = true;
   } else {
-    scene.remove(planeMesh);
-    sceneCSS.remove(cssObject);
+    cssObject.element.style.display = "none";
+    cssObject.visible = false;
+    planeMesh.visible = false;
   }
 }
