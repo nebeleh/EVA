@@ -3,12 +3,27 @@
 var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame;
-var datapoints, mapping, normalizingScale = 10, dimensions;
+var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema;
 var X, Y, Z, R;
+
+function readData(row, col) {
+  if (byteSchema[col] == 8)
+    return datapoints.getFloat64((row*dimensions+col)*8, true);
+  else
+    return datapoints.getInt16((row*dimensions+col)*8, true);
+}
+
+function writeData(row, col, value) {
+  if (byteSchema[col] == 8)
+    datapoints.setFloat64((row*dimensions+col)*8, value, true);
+  else
+    datapoints.setInt16((row*dimensions+col)*8, value, true);
+}
 
 function init($container, $stat, rawdata, metaData) {
   // perfome preprocessing on rawdata
   dimensions = metaData.BINcolumns;
+  byteSchema = metaData.byteSchema;
 
   totalParticles = rawdata.byteLength / (8*dimensions);
   datapoints = new DataView(rawdata);
@@ -21,31 +36,38 @@ function init($container, $stat, rawdata, metaData) {
   // normalizations
   for (var i = 0; i < totalParticles; i++) {
     for (var j = dimensions-1; j >= 0; j--) {
-      dummy = datapoints.getFloat64((i*dimensions+j)*8, true);
+      dummy = readData(i, j); //datapoints.getFloat64((i*dimensions+j)*8, true);
       // normalize
       // treat lat longs differently
       if (j == 1) { // lat longs for this dataset
-        datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat, true);
+        //datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat, true);
+        writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat);
       } else if (j == 2) {
-        datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong, true);
+        //datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong, true);
+        writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong);
       } else if (j >= 4 && j <= 43) {
-        var totalJobs = datapoints.getFloat64((i*dimensions+3)*8, true);
-        datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * dummy / totalJobs, true);
+        var totalJobs = readData(i, j); //datapoints.getFloat64((i*dimensions+3)*8, true);
+        //datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * dummy / totalJobs, true);
+        writeData(i, j, normalizingScale * dummy / totalJobs);
       } else if (metaData.maxOfColumn[j] > metaData.minOfColumn[j]) {
-        datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]), true);
+        //datapoints.setFloat64((i*dimensions+j)*8, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]), true);
+        writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]));
       } else { //center
-        datapoints.setFloat64((i*dimensions+j)*8, 0, true);
+        //datapoints.setFloat64((i*dimensions+j)*8, 0, true);
+        writeData(i, j, 0);
       }
 
       // TODO: replace with a better idea
-      dummy = datapoints.getFloat64((i*dimensions+j)*8, true);
+      dummy = readData(i, j); //datapoints.getFloat64((i*dimensions+j)*8, true);
       if (j == 1)
-        datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLat, true);
+        //datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLat, true);
+        writeData(i, j, dummy + mercatorOffsetLat);
       else if (j == 2)
-        datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLong, true);
+        //datapoints.setFloat64((i*dimensions+j)*8, dummy + mercatorOffsetLong, true);
+        writeData(i, j, dummy + mercatorOffsetLong);
     }
   }
-
+  
   // scene
   scene = new THREE.Scene();
 
@@ -180,7 +202,8 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
     var timeframeSize = 10 / frames.frameno;
     var frameIndex;
     for (var p = 0; p < totalParticles; p++) {
-      frameIndex = Math.floor((datapoints.getFloat64((p*dimensions+mapping.t)*8, true) /* TODO: - minOfColumn_updated */) / timeframeSize);
+      //frameIndex = Math.floor((datapoints.getFloat64((p*dimensions+mapping.t)*8, true) /* TODO: - minOfColumn_updated */) / timeframeSize);
+      frameIndex = Math.floor((readData(p, mapping.t) /* TODO: - minOfColumn_updated */) / timeframeSize);
       if (frameIndex == frames.frameno) frameIndex--;
       frames.frame[frameIndex].particles++;
     }
@@ -200,7 +223,8 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       // proceed only if this particle belongs to this frame
       // TODO: update with min, max, like the code a few lines above
       if (frames.frameno > 1) {
-        frameIndex = Math.floor( datapoints.getFloat64((i*dimensions+mapping.t)*8, true) * frames.frameno / 10);
+        //frameIndex = Math.floor( datapoints.getFloat64((i*dimensions+mapping.t)*8, true) * frames.frameno / 10);
+        frameIndex = Math.floor(readData(i, mapping.t) * frames.frameno / 10);
         if (frameIndex == frames.frameno) frameIndex--;
         if (frameIndex != f) continue;
       }
@@ -208,14 +232,18 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       j++;
 
       // set positions
-      positions[j*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*dimensions+mapping.x)*8, true) : 0;
-      positions[j*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*dimensions+mapping.y)*8, true) : 0;
-      positions[j*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*dimensions+mapping.z)*8, true) : 0;
+      //positions[j*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*dimensions+mapping.x)*8, true) : 0;
+      positions[j*3]   = (mapping.x != -1) ? readData(i, mapping.x) : 0;
+      //positions[j*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*dimensions+mapping.y)*8, true) : 0;
+      positions[j*3+1] = (mapping.y != -1) ? readData(i, mapping.y) : 0;
+      //positions[j*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*dimensions+mapping.z)*8, true) : 0;
+      positions[j*3+2] = (mapping.z != -1) ? readData(i, mapping.z) : 0;
 
       // set colors
       if (mapping.c == -1) continue;
       tempColor = new THREE.Color(0x000000);
-      dummy = datapoints.getFloat64((i*dimensions+mapping.c)*8, true);
+      //dummy = datapoints.getFloat64((i*dimensions+mapping.c)*8, true);
+      dummy = readData(i, mapping.c);
       if (isNaN(dummy)) {
         positions[j*3] = NaN;
         continue;

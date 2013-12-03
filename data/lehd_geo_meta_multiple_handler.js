@@ -189,16 +189,24 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
     metaData.censusBlock[0] = 1;
     metaData.censusBlock[1] = 1;
     metaData.BINcolumns = 18;
+    // initially, all numbers are 2 bytes signed ints
+    metaData.byteSchema = Array.apply(null, new Array(metaData.BINcolumns)).map(Number.prototype.valueOf, 2);
+    // define which numbers are 8 bytes doubles
+    metaData.byteSchema[0] = metaData.byteSchema[1] = metaData.byteSchema[2] = metaData.byteSchema[3] = metaData.byteSchema[4] = metaData.byteSchema[5] = metaData.byteSchema[16] = 8;
   } else if (dataClass === 'rac' ) {
     metaData.CSVcolumns = 44;
     metaData.censusBlock = Array.apply(null, new Array(metaData.CSVcolumns)).map(Number.prototype.valueOf, 0);
     metaData.censusBlock[0] = 1;
     metaData.BINcolumns = 46;
+    metaData.byteSchema = Array.apply(null, new Array(metaData.BINcolumns)).map(Number.prototype.valueOf, 2);
+    metaData.byteSchema[0] = metaData.byteSchema[1] = metaData.byteSchema[2] = metaData.byteSchema[44] = 8;
   } else if (dataClass === 'wac') {
     metaData.CSVcolumns = 54;
     metaData.censusBlock = Array.apply(null, new Array(metaData.CSVcolumns)).map(Number.prototype.valueOf, 0);
     metaData.censusBlock[0] = 1;
     metaData.BINcolumns = 56;
+    metaData.byteSchema = Array.apply(null, new Array(metaData.BINcolumns)).map(Number.prototype.valueOf, 2);
+    metaData.byteSchema[0] = metaData.byteSchema[1] = metaData.byteSchema[2] = metaData.byteSchema[54] = 8;
   } else {
     console.log('this data class not implemented yet.');
     return;
@@ -273,7 +281,7 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
                   metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], dummy);
                 }
 
-                buf.writeDoubleLE(dummy, (j++)*8);
+                (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, (j++)*8) : buf.writeInt16LE(dummy, (j++)*8);
 
                 // write lat, long
                 if (metaData.censusBlock[i]) {
@@ -286,7 +294,7 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
                     metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], dummy);
                   }
 
-                  buf.writeDoubleLE(dummy, (j++)*8);
+                  (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, (j++)*8) : buf.writeInt16LE(dummy, (j++)*8);
 
                   dummy = geomap.get(censusBlock)[1];
 
@@ -295,8 +303,8 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
                     metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], dummy);
                   }
 
-                  buf.writeDoubleLE(dummy, (j++)*8);
-                }
+                  (metaData.byteSchema[j] == 8) ? buf.writeDoubleLE(dummy, (j++)*8) : buf.writeInt16LE(dummy, (j++)*8);
+               }
               }
               lineCounter++;
               if (lineCounter % 10000 == 0)
@@ -317,6 +325,7 @@ function CSVsToBin(destFile, geoFile, dataClass, destJSON, sourceFiles) {
       // TODO write size of each row and number of rows to metadata JSON in order to make it easier for the client to load the data
       if (last) {
         fs.closeSync(outStream);
+        metaData.totalRows = lineCounter;
         fs.writeFileSync(destJSON, JSON.stringify(metaData));
         console.log('Wrote ' + lineCounter + ' lines. All done.');
         return false;

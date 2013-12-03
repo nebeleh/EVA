@@ -83,234 +83,234 @@
 
         getSliderVals();
 
-        $.getJSON('data/lehd/pa_rac_S000_JT00_2011.json', function(metaData) {
-          var xhr = new XMLHttpRequest();
-          xhr.open('GET', '/data/lehd/' + metaData.filename, true);
-          xhr.responseType = 'arraybuffer';
+        $.getJSON(/*'data/lehd/pa_rac_S000_JT00_2011.json'*/ 'data/lehd/pa_rac_all.json', function(metaData) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/data/lehd/' + metaData.filename, true);
+        xhr.responseType = 'arraybuffer';
 
-          xhr.onload = function(e) {
-            var buf = this.response;
-
-            $('.dimension-mapper').each(function(d) {
-              var dropdownId = '';
-              if (d == 0) { dropdownId = 'xDimensionDropdown'; }
-              else if (d == 1) { dropdownId = 'yDimensionDropdown'; }
-              else if (d == 2) { dropdownId = 'zDimensionDropdown'; }
-              else if (d == 3) { dropdownId = 'cDimensionDropdown'; }
-              else {dropdownId = 'tDimensionDropdown'; }
-              var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'NONE\',-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
-              metaData.columnNames.forEach(function(e, i, a){
-                newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'' + e + '\',' + i + ');">' + e + '</a></li>\n';
-              });
-              jQuery(this).html(newHTML);
+        xhr.onload = function(e) {
+          var buf = this.response;
+          
+          $('.dimension-mapper').each(function(d) {
+            var dropdownId = '';
+            if (d == 0) { dropdownId = 'xDimensionDropdown'; }
+            else if (d == 1) { dropdownId = 'yDimensionDropdown'; }
+            else if (d == 2) { dropdownId = 'zDimensionDropdown'; }
+            else if (d == 3) { dropdownId = 'cDimensionDropdown'; }
+            else {dropdownId = 'tDimensionDropdown'; }
+            var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'NONE\',-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
+            metaData.columnNames.forEach(function(e, i, a){
+              newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'' + e + '\',' + i + ');">' + e + '</a></li>\n';
             });
+            jQuery(this).html(newHTML);
+          });
+          
+          init($('#drawCanvas'), $('#stat'), buf, metaData);
+        };
 
-            init($('#drawCanvas'), $('#stat'), buf, metaData);
-          };
-
-          xhr.send();
-        });
-
+        xhr.send();
       });
-    </script>
-  </head>
-  <body>
-    <div id="stat"></div>
-    <div id="drawCanvas"></div>
 
-    <div id="params3">
+    });
+  </script>
+</head>
+<body>
+  <div id="stat"></div>
+  <div id="drawCanvas"></div>
+
+  <div id="params3">
+    <div class="panel panel-info">
+      <div class="panel-heading">
+        <h3 class="panel-title">Dimension Mapping</h3>
+      </div>
+      <ul class="nav nav-pills">
+
+        <li>
+        <button type="button" class="btn btn-danger btnblock" disabled>X: </button>
+        </li>
+        <li class="dropdown">
+        <a id="xDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+          NONE
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="xDimensionDropdown">
+        </ul>
+        </li>
+
+        <li> 
+        <button type="button" class="btn btn-success btnblock" disabled>Y: </button>
+        </li>
+        <li class="dropdown">
+        <a id="yDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+          NONE
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="yDimensionDropdown">
+        </ul>
+        </li>
+
+        <li>
+        <button type="button" class="btn btn-primary btnblock" disabled>Z: </button>
+        </li>
+        <li class="dropdown">
+        <a id="zDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+          NONE
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="zDimensionDropdown">
+        </ul>
+        </li>
+
+        <li>
+        <button type="button" class="btn btn-warning btnblock" disabled>Color: </button>
+        </li>
+        <li class="dropdown">
+        <a id="cDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+          NONE
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="cDimensionDropdown">
+        </ul>
+        </li>
+
+        <li>
+        <button type="button" class="btn btn-info btnblock" disabled>Time: </button>
+        </li>
+        <li class="dropdown">
+        <a id="tDimensionDropdown" role="button" data-toggle="dropdown" href="#">
+          NONE
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="tDimensionDropdown">
+        </ul>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+
+  <div id="params1">
+
+    <div class="panel panel-primary">
+      <div class="panel-heading">
+        <h3 class="panel-title">Parameters</h3>
+      </div>
+      <table class="table tablenoborder">
+        <tr>
+          <td>
+            <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="xSlider" data-slider-id="XS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+          </td>
+          <td>
+            <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="ySlider" data-slider-id="YS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+          </td>
+          <td>
+            <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="901" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+          </td>
+          <td>
+            <input type="text" class="span2" value="" data-slider-min="5" data-slider-max="100" data-slider-step="1" data-slider-value="100" id="rSlider" data-slider-id="RS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+          </td>
+          <tr>
+            <td data-toggle="tooltip" title="Scale in X">X</td>
+            <td data-toggle="tooltip" title="Scale in Y">Y</td>
+            <td data-toggle="tooltop" title="Scale in Z">Z</td>
+            <td data-toggle="tooltip" title="Sphere Radius">R</td>
+          </tr>
+        </table>
+      </div>
+
       <div class="panel panel-info">
         <div class="panel-heading">
-          <h3 class="panel-title">Dimension Mapping</h3>
+          <h3 class="panel-title">Information</h3>
         </div>
-        <ul class="nav nav-pills">
-
-          <li>
-          <button type="button" class="btn btn-danger btnblock" disabled>X: </button>
-          </li>
-          <li class="dropdown">
-          <a id="xDimensionDropdown" role="button" data-toggle="dropdown" href="#">
-            NONE
-            <span class="caret"></span>
-          </a>
-          <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="xDimensionDropdown">
-          </ul>
-          </li>
-
-          <li> 
-          <button type="button" class="btn btn-success btnblock" disabled>Y: </button>
-          </li>
-          <li class="dropdown">
-          <a id="yDimensionDropdown" role="button" data-toggle="dropdown" href="#">
-            NONE
-            <span class="caret"></span>
-          </a>
-          <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="yDimensionDropdown">
-          </ul>
-          </li>
-
-          <li>
-          <button type="button" class="btn btn-primary btnblock" disabled>Z: </button>
-          </li>
-          <li class="dropdown">
-          <a id="zDimensionDropdown" role="button" data-toggle="dropdown" href="#">
-            NONE
-            <span class="caret"></span>
-          </a>
-          <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="zDimensionDropdown">
-          </ul>
-          </li>
-
-          <li>
-          <button type="button" class="btn btn-warning btnblock" disabled>Color: </button>
-          </li>
-          <li class="dropdown">
-          <a id="cDimensionDropdown" role="button" data-toggle="dropdown" href="#">
-            NONE
-            <span class="caret"></span>
-          </a>
-          <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="cDimensionDropdown">
-          </ul>
-          </li>
-
-          <li>
-          <button type="button" class="btn btn-info btnblock" disabled>Time: </button>
-          </li>
-          <li class="dropdown">
-          <a id="tDimensionDropdown" role="button" data-toggle="dropdown" href="#">
-            NONE
-            <span class="caret"></span>
-          </a>
-          <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="tDimensionDropdown">
-          </ul>
-          </li>
-
-        </ul>
+        <table class="table table-striped">
+          <tr>
+            <td><b>X Scale</b></td>
+            <td id="Xindicator"></td>
+          </tr>
+          <tr>
+            <td><b>Y Scale</b></td>
+            <td id="Yindicator"></td>
+          </tr>
+          <tr>
+            <td><b>Z Scale</b></td>
+            <td id="Zindicator"></td>
+          </tr>
+          <tr>
+            <td><b>Radius</b></td>
+            <td id="Rindicator"></td>
+          </tr>
+          <tr>
+            <td><b>Events</b></td>
+            <td id="eventsindicator"></td>
+          </tr>
+        </table>
       </div>
+
     </div>
 
-    <div id="params1">
+    <div id="params2">
 
       <div class="panel panel-primary">
         <div class="panel-heading">
-          <h3 class="panel-title">Parameters</h3>
+          <h3 class="panel-title">Camera Type</h3>
         </div>
-        <table class="table tablenoborder">
-          <tr>
-            <td>
-              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="xSlider" data-slider-id="XS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
-            </td>
-            <td>
-              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="ySlider" data-slider-id="YS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
-            </td>
-            <td>
-              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="901" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
-            </td>
-            <td>
-              <input type="text" class="span2" value="" data-slider-min="5" data-slider-max="100" data-slider-step="1" data-slider-value="100" id="rSlider" data-slider-id="RS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
-            </td>
-            <tr>
-              <td data-toggle="tooltip" title="Scale in X">X</td>
-              <td data-toggle="tooltip" title="Scale in Y">Y</td>
-              <td data-toggle="tooltop" title="Scale in Z">Z</td>
-              <td data-toggle="tooltip" title="Sphere Radius">R</td>
-            </tr>
-          </table>
-        </div>
-
-        <div class="panel panel-info">
-          <div class="panel-heading">
-            <h3 class="panel-title">Information</h3>
+        <form>
+          <div class="radio">
+            <label>
+              <input type="radio" name="cameraRadios" id="perspectiveRadio" onclick="setCameraType('perspective');" checked>Perspective
+            </label>
           </div>
-          <table class="table table-striped">
-            <tr>
-              <td><b>X Scale</b></td>
-              <td id="Xindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Y Scale</b></td>
-              <td id="Yindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Z Scale</b></td>
-              <td id="Zindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Radius</b></td>
-              <td id="Rindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Events</b></td>
-              <td id="eventsindicator"></td>
-            </tr>
-          </table>
-        </div>
 
+          <div class="radio">
+            <label>
+              <input type="radio" name="cameraRadios" id="orthographicRadio" onclick="setCameraType('orthographic');">Orthographic
+            </label>
+          </div>
+        </form>
       </div>
 
-      <div id="params2">
-
-        <div class="panel panel-primary">
-          <div class="panel-heading">
-            <h3 class="panel-title">Camera Type</h3>
-          </div>
-          <form>
-            <div class="radio">
-              <label>
-                <input type="radio" name="cameraRadios" id="perspectiveRadio" onclick="setCameraType('perspective');" checked>Perspective
-              </label>
-            </div>
-
-            <div class="radio">
-              <label>
-                <input type="radio" name="cameraRadios" id="orthographicRadio" onclick="setCameraType('orthographic');">Orthographic
-              </label>
-            </div>
-          </form>
+      <div class="panel panel-info">
+        <div class="panel-heading">
+          <h3 class="panel-title">Settings</h3>
         </div>
-
-        <div class="panel panel-info">
-          <div class="panel-heading">
-            <h3 class="panel-title">Settings</h3>
+        <form>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>
+              Axis Helper
+            </label>
           </div>
-          <form>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>
-                Axis Helper
-              </label>
-            </div>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" onclick="setGridXY(this.checked);">
-                Grid XY Helper
-              </label>
-            </div>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" onclick="setGridXZ(this.checked);">
-                Grid XZ Helper
-              </label>
-            </div>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" onclick="setGridYZ(this.checked);">
-                Grid YZ Helper
-              </label>
-            </div>
-          </form>
-        </div>
-
-        <div class="panel panel-primary">
-          <div class="panel-heading">
-            <h3 class="panel-title">Camera Orientation</h3>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" onclick="setGridXY(this.checked);">
+              Grid XY Helper
+            </label>
           </div>
-          <p><button type="button" class="btn btn-danger btn-block" onclick="setCameraX();">Look from X</button></p>
-          <p><button type="button" class="btn btn-success btn-block" onclick="setCameraY();">Look from Y</button></p>
-          <p><button type="button" class="btn btn-primary btn-block" onclick="setCameraZ();">Look from Z</button></p>
-        </div>
-
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" onclick="setGridXZ(this.checked);">
+              Grid XZ Helper
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" onclick="setGridYZ(this.checked);">
+              Grid YZ Helper
+            </label>
+          </div>
+        </form>
       </div>
 
-    </body>
-  </html>
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Camera Orientation</h3>
+        </div>
+        <p><button type="button" class="btn btn-danger btn-block" onclick="setCameraX();">Look from X</button></p>
+        <p><button type="button" class="btn btn-success btn-block" onclick="setCameraY();">Look from Y</button></p>
+        <p><button type="button" class="btn btn-primary btn-block" onclick="setCameraZ();">Look from Z</button></p>
+      </div>
+
+    </div>
+
+  </body>
+</html>
