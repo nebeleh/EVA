@@ -243,6 +243,10 @@
             <td><b>Events</b></td>
             <td id="eventsindicator"></td>
           </tr>
+          <tr>
+            <td><b>T Range</b></td>
+            <td id="Tindicator"></td>
+          </tr>
         </table>
       </div>
 
@@ -274,6 +278,12 @@
           <h3 class="panel-title">Settings</h3>
         </div>
         <form>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" onclick="setGeoLayer(this.checked);">
+              Geo Layer
+            </label>
+          </div>
           <div class="checkbox">
             <label>
               <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>

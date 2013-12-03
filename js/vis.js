@@ -1,9 +1,9 @@
 // used code from http://stemkoski.github.io/Three.js/Graphulus-Surface.html
 
-var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames;
+var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame;
-var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets;
+var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
 var X, Y, Z, R;
 
 function readData(row, col) {
@@ -20,8 +20,22 @@ function writeData(row, col, value) {
     datapoints.setInt16(row*byteOffsets[byteOffsets.length-1]+byteOffsets[col], value, true);
 }
 
-function init($container, $stat, rawdata, metaData) {
+function aggregator(row, col, rangeMin, rangeMax) {
+  if (col == 1 || col == 2)
+    return readData(row, col);
+
+  if (col >= 4 && col <= 43) // divide by total number of jobs
+    return (readData(row, 3) == 0) ? rangeMin : (readData(row, col) / readData(row, 3) * (rangeMax - rangeMin) + rangeMin);
+
+  if (metaData.minOfColumn[col] == metaData.maxOfColumn[col])
+    return rangeMin;
+
+  return (readData(row, col) - metaData.minOfColumn[col]) / (metaData.maxOfColumn[col] - metaData.minOfColumn[col]) * (rangeMax - rangeMin) + rangeMin;
+}
+
+function init($container, $stat, rawdata, MetaData) {
   // perfome preprocessing on rawdata
+  metaData = MetaData;
   dimensions = metaData.BINcolumns;
   byteSchema = metaData.byteSchema;
   
@@ -36,40 +50,25 @@ function init($container, $stat, rawdata, metaData) {
   totalParticles = metaData.totalRows;
   datapoints = new DataView(rawdata);
 
-  var mercatorScaleLat = 1.325; // TODO: dummy variable, remove in the future
+  // TODO: use mercator translation instead of this hand tailored code
+  var mercatorScaleLat = 1.325;
   var mercatorOffsetLat = .075;
   var mercatorScaleLong = 0.997;
   var mercatorOffsetLong = 0.007;
 
-  // normalizations
+  // convert lat, long to x, y
   for (var i = 0; i < totalParticles; i++) {
     for (var j = dimensions-1; j >= 0; j--) {
       dummy = readData(i, j);
-      // normalize
-      // treat lat longs differently
-      if (j == 1) { // lat longs for this dataset
-        writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat);
+      if (j == 1) {
+        writeData(i, j, mercatorOffsetLat + normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat);
       } else if (j == 2) {
-        writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong);
-      } else if (j >= 4 && j <= 43) {
-        var totalJobs = readData(i, j);
-        //writeData(i, j, normalizingScale * dummy / totalJobs);
-      } else if (metaData.maxOfColumn[j] > metaData.minOfColumn[j]) {
-        //writeData(i, j, normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]));
-      } else { //center
-        writeData(i, j, 0);
-      }
-
-      // TODO: replace with a better idea
-      dummy = readData(i, j); //datapoints.getFloat64((i*dimensions+j)*8, true);
-      if (j == 1)
-        writeData(i, j, dummy + mercatorOffsetLat);
-      else if (j == 2)
-        writeData(i, j, dummy + mercatorOffsetLong);
+        writeData(i, j, mercatorOffsetLong + normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong);
+      } 
     }
   }
   
-  // scene
+  // create scene
   scene = new THREE.Scene();
 
   var mapWidth = 100;
@@ -82,11 +81,11 @@ function init($container, $stat, rawdata, metaData) {
   planeMaterial.opacity = 0;
   planeMaterial.side = THREE.DoubleSide;
   planeMaterial.blending = THREE.NoBlending;
-  var planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
+  planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
   planeMesh.translateX(mapWidth/2);
   planeMesh.translateY(mapHeight/2);
 
-  scene.add(planeMesh);
+  //scene.add(planeMesh);
 
   var element = document.createElement('iframe');
   var mapsURL = 'http://maps.google.com/maps?ll='+(metaData.minOfColumn[1]+metaData.maxOfColumn[1])/2+','+(metaData.minOfColumn[2]+metaData.maxOfColumn[2])/2+'&z=11&output=embed';
@@ -101,7 +100,7 @@ function init($container, $stat, rawdata, metaData) {
   cssObject.scale.multiplyScalar((40*48/mapResolution)/window.innerWidth);
 
   sceneCSS = new THREE.Scene();
-  sceneCSS.add(cssObject);
+  //sceneCSS.add(cssObject);
 
   rendererCSS = new THREE.CSS3DRenderer();
   rendererCSS.setSize(window.innerWidth, window.innerHeight);
@@ -178,13 +177,10 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
   Z = uZ;
   R = uR;
   currFrame = 0;
-//  scene.remove(particleSystem);
 
   // creating the basic structure of frames
   frames = {};
-  // TODO: also if maxOfColumn_updated[t] == min.., only make 1 frame as you cannot divide it 
-  // into different frames
-  if (mapping.t == -1)
+  if (mapping.t == -1 || metaData.maxOfColumn[mapping.t] == metaData.minOfColumn[mapping.t])
     frames.frameno = 1;
   else
     frames.frameno = 10; // TODO: receive number of buckets from user
@@ -193,18 +189,17 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
   for (var f = 0; f < frames.frameno; f++) {
     frames.frame.push({});
     frames.frame[f].particles = 0;
+    frames.frame[f].minValue = (frames.frameno > 1) ? Number.MAX_VALUE : NaN;
+    frames.frame[f].maxValue = (frames.frameno > 1) ? -Number.MAX_VALUE : NaN;
   }
 
   // finding number of particles in each frame
+  var timeframeSize = (metaData.maxOfColumn[mapping.t] - metaData.minOfColumn[mapping.t]) / frames.frameno, frameIndex;
   if (frames.frameno == 1)
     frames.frame[0].particles = totalParticles;
   else {
-    // TODO: windowSize = (maxOfColumn_updated - minOfColumn_updated) / frames.frameno;
-    var timeframeSize = 10 / frames.frameno;
-    var frameIndex;
     for (var p = 0; p < totalParticles; p++) {
-      //frameIndex = Math.floor((datapoints.getFloat64((p*dimensions+mapping.t)*8, true) /* TODO: - minOfColumn_updated */) / timeframeSize);
-      frameIndex = Math.floor((readData(p, mapping.t) /* TODO: - minOfColumn_updated */) / timeframeSize);
+      frameIndex = Math.floor((readData(p, mapping.t) - metaData.minOfColumn[mapping.t]) / timeframeSize);
       if (frameIndex == frames.frameno) frameIndex--;
       frames.frame[frameIndex].particles++;
     }
@@ -219,37 +214,40 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
     var positions = frames.frame[f].geometry.attributes.position.array;
     var colors = frames.frame[f].geometry.attributes.color.array;
 
-    var tempColor, dummy, frameIndex;
+    var tempColor, dummy;
     for (var i = 0, j = -1; i < totalParticles; i++) {
+ 
+      if (mapping.x == -1 && mapping.y == -1 && mapping.z == -1) {
+        positions[j*3] = NaN;
+        continue;
+      }
+
       // proceed only if this particle belongs to this frame
-      // TODO: update with min, max, like the code a few lines above
       if (frames.frameno > 1) {
-        //frameIndex = Math.floor( datapoints.getFloat64((i*dimensions+mapping.t)*8, true) * frames.frameno / 10);
-        frameIndex = Math.floor(readData(i, mapping.t) * frames.frameno / 10);
+        dummy = readData(i, mapping.t);
+        frameIndex = Math.floor((dummy - metaData.minOfColumn[mapping.t]) / timeframeSize);
         if (frameIndex == frames.frameno) frameIndex--;
         if (frameIndex != f) continue;
-      }
+        frames.frame[f].minValue = Math.min(frames.frame[f].minValue, dummy);
+        frames.frame[f].maxValue = Math.max(frames.frame[f].maxValue, dummy);
+      } 
       
       j++;
 
       // set positions
-      //positions[j*3]   = (mapping.x != -1) ? datapoints.getFloat64((i*dimensions+mapping.x)*8, true) : 0;
-      positions[j*3]   = (mapping.x != -1) ? readData(i, mapping.x) : 0;
-      //positions[j*3+1] = (mapping.y != -1) ? datapoints.getFloat64((i*dimensions+mapping.y)*8, true) : 0;
-      positions[j*3+1] = (mapping.y != -1) ? readData(i, mapping.y) : 0;
-      //positions[j*3+2] = (mapping.z != -1) ? datapoints.getFloat64((i*dimensions+mapping.z)*8, true) : 0;
-      positions[j*3+2] = (mapping.z != -1) ? readData(i, mapping.z) : 0;
+      positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
+      positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
+      positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
 
       // set colors
       if (mapping.c == -1) continue;
       tempColor = new THREE.Color(0x000000);
-      //dummy = datapoints.getFloat64((i*dimensions+mapping.c)*8, true);
-      dummy = readData(i, mapping.c);
+      dummy = aggregator(i, mapping.c, 0, 1);
       if (isNaN(dummy)) {
         positions[j*3] = NaN;
         continue;
       }
-      tempColor.setHSL(dummy / normalizingScale * .8 + .2, 1., .5);
+      tempColor.setHSL(dummy * .8 + .2, 1., .5);
       colors[j*3]   = tempColor.r;
       colors[j*3+1] = tempColor.g;
       colors[j*3+2] = tempColor.b;
@@ -257,8 +255,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
     frames.frame[f].geometry.computeBoundingSphere();
   }
   particleMaterial = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending,*/ transparent: true, size: R, vertexColors: true, opacity: 0.5});
-  // TODO: material.alphaTest = 0.5 --> apparently this solves the problem of z-index 
-  // for sprites
+  // TODO: material.alphaTest = 0.5 --> apparently this solves the problem of z-index for sprites
   updateParticleSystem(currFrame);
   updateInfo();
 }
@@ -289,6 +286,7 @@ function updateDraw(uX, uY, uZ, uR)
 
 function updateInfo() {
   $('#eventsindicator').text(particleSystem ? particleSystem.geometry.attributes.position.array.length/3 : 0);
+  $('#Tindicator').text((frames && frames.frameno > 1 && !(mapping.x == -1 && mapping.y == -1 && mapping.z == -1)) ? (frames.frame[currFrame].minValue.toFixed(0) + ' - ' + frames.frame[currFrame].maxValue.toFixed(0)) : 'none');
 }
 
 function calcWindowResize(rend, camera)
@@ -323,7 +321,7 @@ function updateFrame() {
   }
   currTime = Date.now();
 
-  if (currTime >= lastTime + (currFrame == frames.frameno-1 ? 3000 : 1000)) {
+  if (currTime >= lastTime + (currFrame == frames.frameno-1 ? 1500 : 500)) {
     lastTime = currTime;
     currFrame = (currFrame + 1 ) % frames.frameno;
     updateParticleSystem(currFrame);
@@ -457,5 +455,15 @@ function setGridYZ(s)
     scene.add(gridYZ);
   } else {
     scene.remove(gridYZ);
+  }
+}
+
+function setGeoLayer(s) {
+  if (s) {
+    scene.add(planeMesh);
+    sceneCSS.add(cssObject);
+  } else {
+    scene.remove(planeMesh);
+    sceneCSS.remove(cssObject);
   }
 }
