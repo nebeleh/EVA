@@ -83,7 +83,7 @@
 
         getSliderVals();
 
-        $.getJSON(/*'data/lehd/pa_rac_test.json'*/ 'data/lehd/pa_rac_all.json', function(metaData) {
+        $.getJSON(/*'data/lehd/pa_rac_test.json'*/'data/lehd/pa_rac_all.json', function(metaData) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '/data/lehd/' + metaData.filename, true);
         xhr.responseType = 'arraybuffer';

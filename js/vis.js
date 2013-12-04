@@ -1,5 +1,3 @@
-// used code from http://stemkoski.github.io/Three.js/Graphulus-Surface.html
-
 var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame;
@@ -84,28 +82,21 @@ function init($container, $stat, rawdata, MetaData) {
   planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
   planeMesh.translateX(mapWidth/2);
   planeMesh.translateY(mapHeight/2);
-  planeMesh.visible = false;
-
-  scene.add(planeMesh);
 
   var element = document.createElement('iframe');
-  var mapsURL = 'http://maps.google.com/maps?ll='+(metaData.minOfColumn[1]+metaData.maxOfColumn[1])/2+','+(metaData.minOfColumn[2]+metaData.maxOfColumn[2])/2+'&z=11&output=embed';
+  var mapsURL = 'https://maps.google.com/maps?ll=41.0088559,-77.6069819&z=11&output=embed';
   element.src = mapsURL;
   element.style.width = mapResolution * mapWidth + 'px';
   element.style.height = mapResolution * mapHeight + 'px';
-
+  
   cssObject = new THREE.CSS3DObject(element);
   cssObject.position = planeMesh.position;
   cssObject.position.z -= 0.01;
   cssObject.rotation = planeMesh.rotation;
-  cssObject.scale.multiplyScalar(1/mapResolution); //(40*48/mapResolution)/window.innerWidth);
-
-  sceneCSS = new THREE.Scene();
-  sceneCSS.add(cssObject);
+  cssObject.scale.multiplyScalar(1/mapResolution);
   
-  cssObject.element.style.display = "none";
-  cssObject.visible = false;
-
+  sceneCSS = new THREE.Scene();
+  
   rendererCSS = new THREE.CSS3DRenderer();
   rendererCSS.setSize(window.innerWidth, window.innerHeight);
   rendererCSS.domElement.style.position = 'absolute';
@@ -170,8 +161,10 @@ function init($container, $stat, rawdata, MetaData) {
   // start animating
   updateInfo();
   animate();
-}
 
+  //setGeoLayer(true);
+  //setGeoLayer(false);
+}
 
 function initialDraw(Mapping, uX, uY, uZ, uR)
 {
@@ -464,12 +457,10 @@ function setGridYZ(s)
 
 function setGeoLayer(s) {
   if (s) {
-    cssObject.element.style.display = "";
-    cssObject.visible = true;
-    planeMesh.visible = true;
+    sceneCSS.add(cssObject);
+    scene.add(planeMesh);
   } else {
-    cssObject.element.style.display = "none";
-    cssObject.visible = false;
-    planeMesh.visible = false;
+    sceneCSS.remove(cssObject);
+    scene.remove(planeMesh);
   }
 }
