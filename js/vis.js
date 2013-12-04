@@ -3,6 +3,7 @@ var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, 
 var particleSystem, totalParticles, particleMaterial, currFrame;
 var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
 var X, Y, Z, R;
+var lastTime = -1, currTime;
 
 function readData(row, col) {
   if (byteSchema[col] == 8)
@@ -217,9 +218,6 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       frames.frame[f].geometry.addAttribute('position', Float32Array, frames.frame[f].particles, 3);
       frames.frame[f].geometry.addAttribute('color', Float32Array, frames.frame[f].particles, 3);
 
-      frames.frame[f].positions = frames.frame[f].geometry.attributes.position.array;
-      frames.frame[f].colors = frames.frame[f].geometry.attributes.color.array;
-
       frames.frame[f].j = -1;
     }
 
@@ -239,22 +237,24 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       j = frames.frame[frameIndex].j;
 
       // set positions
-      frames.frame[frameIndex].positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
-      frames.frame[frameIndex].positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
-      frames.frame[frameIndex].positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
+      var positions = frames.frame[frameIndex].geometry.attributes.position.array;
+      positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
+      positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
+      positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
       
       // set colors
       if (mapping.c == -1) continue;
       tempColor = new THREE.Color(0x000000);
       dummy = aggregator(i, mapping.c, 0, 1);
       if (isNaN(dummy)) {
-        frames.frame[frameIndex].positions[j*3] = NaN;
+        positions[j*3] = NaN;
         continue;
       }
       tempColor.setHSL(dummy * .8 + .2, 1., .5);
-      frames.frame[frameIndex].colors[j*3]   = tempColor.r;
-      frames.frame[frameIndex].colors[j*3+1] = tempColor.g;
-      frames.frame[frameIndex].colors[j*3+2] = tempColor.b;
+      var colors = frames.frame[frameIndex].geometry.attributes.color.array;
+      colors[j*3]   = tempColor.r;
+      colors[j*3+1] = tempColor.g;
+      colors[j*3+2] = tempColor.b;
     }
 
     for (var f = 0; f < frames.frameno; f++) {
@@ -265,6 +265,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
     // TODO: material.alphaTest = 0.5 --> apparently this solves the problem of z-index for sprites
     updateParticleSystem(currFrame);
   }
+  lastTime = Date.now();
   updateInfo();
 }
 
@@ -321,7 +322,6 @@ function calcWindowResize(rend, camera)
   };
 }
 
-var lastTime = -1, currTime;
 function updateFrame() {
   if (lastTime == -1) {
     lastTime = Date.now();
