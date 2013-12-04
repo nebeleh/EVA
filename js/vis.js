@@ -36,7 +36,7 @@ function init($container, $stat, rawdata, MetaData) {
   metaData = MetaData;
   dimensions = metaData.BINcolumns;
   byteSchema = metaData.byteSchema;
-  
+
   byteOffsets = [];
   var offset = 0;
   for (var i = 0; i < byteSchema.length; i++) {
@@ -53,16 +53,20 @@ function init($container, $stat, rawdata, MetaData) {
   var mercatorOffsetLat = .075;
   var mercatorScaleLong = 0.997;
   var mercatorOffsetLong = 0.007;
-
+  
   // convert lat, long to x, y
-  for (var i = 0; i < totalParticles; i++) {
-    for (var j = dimensions-1; j >= 0; j--) {
+  for (var j = 1; j <= 2; j++) {
+    metaData.minOfColumn[j] = Number.MAX_VALUE;
+    metaData.maxOfColumn[j] = -Number.MAX_VALUE;
+    for (var i = 0; i < totalParticles; i++) {
       dummy = readData(i, j);
       if (j == 1) {
-        writeData(i, j, mercatorOffsetLat + normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * mercatorScaleLat);
+        writeData(i, j, mercatorOffsetLat + normalizingScale * (dummy - 39.7200908) / (-74.6950107 - -80.5189531) * mercatorScaleLat);
       } else if (j == 2) {
-        writeData(i, j, mercatorOffsetLong + normalizingScale * (dummy - metaData.minOfColumn[j]) / (metaData.maxOfColumn[j] - metaData.minOfColumn[j]) * mercatorScaleLong);
-      } 
+        writeData(i, j, mercatorOffsetLong + normalizingScale * (dummy - -80.5189531) / (-74.6950107 - -80.5189531) * mercatorScaleLong);
+      }
+      metaData.minOfColumn[j] = Math.min(metaData.minOfColumn[j], readData(i, j));
+      metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], readData(i, j));
     }
   }
   
@@ -88,15 +92,15 @@ function init($container, $stat, rawdata, MetaData) {
   element.src = mapsURL;
   element.style.width = mapResolution * mapWidth + 'px';
   element.style.height = mapResolution * mapHeight + 'px';
-  
+
   cssObject = new THREE.CSS3DObject(element);
   cssObject.position = planeMesh.position;
   cssObject.position.z -= 0.01;
   cssObject.rotation = planeMesh.rotation;
   cssObject.scale.multiplyScalar(1/mapResolution);
-  
+
   sceneCSS = new THREE.Scene();
-  
+
   rendererCSS = new THREE.CSS3DRenderer();
   rendererCSS.setSize(window.innerWidth, window.innerHeight);
   rendererCSS.domElement.style.position = 'absolute';
@@ -168,6 +172,8 @@ function init($container, $stat, rawdata, MetaData) {
 
 function initialDraw(Mapping, uX, uY, uZ, uR)
 {
+  scene.remove(particleSystem);
+
   mapping = Mapping;
   X = uX;
   Y = uY;
@@ -190,70 +196,75 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
     frames.frame[f].maxValue = (frames.frameno > 1) ? -Number.MAX_VALUE : NaN;
   }
 
-  // finding number of particles in each frame
-  var timeframeSize = (metaData.maxOfColumn[mapping.t] - metaData.minOfColumn[mapping.t]) / frames.frameno, frameIndex;
-  if (frames.frameno == 1)
-    frames.frame[0].particles = totalParticles;
-  else {
-    for (var p = 0; p < totalParticles; p++) {
-      frameIndex = Math.floor((readData(p, mapping.t) - metaData.minOfColumn[mapping.t]) / timeframeSize);
-      if (frameIndex == frames.frameno) frameIndex--;
-      frames.frame[frameIndex].particles++;
-    }
-  }
+  if (!(mapping.x == -1 && mapping.y == -1 && mapping.z == -1)) {
 
-  // finding x, y, z and color values for particles in each frame
-  for (var f = 0; f < frames.frameno; f++) {
-    frames.frame[f].geometry = new THREE.BufferGeometry();
-    frames.frame[f].geometry.addAttribute('position', Float32Array, frames.frame[f].particles, 3);
-    frames.frame[f].geometry.addAttribute('color', Float32Array, frames.frame[f].particles, 3);
-
-    var positions = frames.frame[f].geometry.attributes.position.array;
-    var colors = frames.frame[f].geometry.attributes.color.array;
-
-    var tempColor, dummy;
-    for (var i = 0, j = -1; i < totalParticles; i++) {
- 
-      if (mapping.x == -1 && mapping.y == -1 && mapping.z == -1) {
-        positions[j*3] = NaN;
-        continue;
+    // finding number of particles in each frame
+    var timeframeSize, frameIndex;
+    if (frames.frameno == 1)
+      frames.frame[0].particles = totalParticles;
+    else {
+      timeframeSize = (metaData.maxOfColumn[mapping.t] - metaData.minOfColumn[mapping.t]) / frames.frameno;
+      for (var p = 0; p < totalParticles; p++) {
+        frameIndex = Math.floor((readData(p, mapping.t) - metaData.minOfColumn[mapping.t]) / timeframeSize);
+        if (frameIndex == frames.frameno) frameIndex--;
+        frames.frame[frameIndex].particles++;
       }
+    }
 
-      // proceed only if this particle belongs to this frame
+    // finding x, y, z and color values for particles in each frame
+    for (var f = 0; f < frames.frameno; f++) {
+      frames.frame[f].geometry = new THREE.BufferGeometry();
+      frames.frame[f].geometry.addAttribute('position', Float32Array, frames.frame[f].particles, 3);
+      frames.frame[f].geometry.addAttribute('color', Float32Array, frames.frame[f].particles, 3);
+
+      frames.frame[f].positions = frames.frame[f].geometry.attributes.position.array;
+      frames.frame[f].colors = frames.frame[f].geometry.attributes.color.array;
+
+      frames.frame[f].j = -1;
+    }
+
+    var tempColor, dummy, j;
+    for (var i = 0, j = -1; i < totalParticles; i++) {
+
+      frameIndex = 0;
       if (frames.frameno > 1) {
         dummy = readData(i, mapping.t);
         frameIndex = Math.floor((dummy - metaData.minOfColumn[mapping.t]) / timeframeSize);
         if (frameIndex == frames.frameno) frameIndex--;
-        if (frameIndex != f) continue;
-        frames.frame[f].minValue = Math.min(frames.frame[f].minValue, dummy);
-        frames.frame[f].maxValue = Math.max(frames.frame[f].maxValue, dummy);
+        frames.frame[frameIndex].minValue = Math.min(frames.frame[frameIndex].minValue, dummy);
+        frames.frame[frameIndex].maxValue = Math.max(frames.frame[frameIndex].maxValue, dummy);
       } 
-      
-      j++;
+
+      frames.frame[frameIndex].j++;
+      j = frames.frame[frameIndex].j;
 
       // set positions
-      positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
-      positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
-      positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
-
+      frames.frame[frameIndex].positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
+      frames.frame[frameIndex].positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
+      frames.frame[frameIndex].positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
+      
       // set colors
       if (mapping.c == -1) continue;
       tempColor = new THREE.Color(0x000000);
       dummy = aggregator(i, mapping.c, 0, 1);
       if (isNaN(dummy)) {
-        positions[j*3] = NaN;
+        frames.frame[frameIndex].positions[j*3] = NaN;
         continue;
       }
       tempColor.setHSL(dummy * .8 + .2, 1., .5);
-      colors[j*3]   = tempColor.r;
-      colors[j*3+1] = tempColor.g;
-      colors[j*3+2] = tempColor.b;
+      frames.frame[frameIndex].colors[j*3]   = tempColor.r;
+      frames.frame[frameIndex].colors[j*3+1] = tempColor.g;
+      frames.frame[frameIndex].colors[j*3+2] = tempColor.b;
     }
-    frames.frame[f].geometry.computeBoundingSphere();
+
+    for (var f = 0; f < frames.frameno; f++) {
+      frames.frame[f].geometry.computeBoundingSphere();
+    }
+
+    particleMaterial = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending,*/ transparent: true, size: R, vertexColors: true, opacity: 0.5});
+    // TODO: material.alphaTest = 0.5 --> apparently this solves the problem of z-index for sprites
+    updateParticleSystem(currFrame);
   }
-  particleMaterial = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending,*/ transparent: true, size: R, vertexColors: true, opacity: 0.5});
-  // TODO: material.alphaTest = 0.5 --> apparently this solves the problem of z-index for sprites
-  updateParticleSystem(currFrame);
   updateInfo();
 }
 
@@ -282,8 +293,8 @@ function updateDraw(uX, uY, uZ, uR)
 }
 
 function updateInfo() {
-  $('#eventsindicator').text(particleSystem ? particleSystem.geometry.attributes.position.array.length/3 : 0);
-  $('#Tindicator').text((frames && frames.frameno > 1 && !(mapping.x == -1 && mapping.y == -1 && mapping.z == -1)) ? (frames.frame[currFrame].minValue.toFixed(0) + ' - ' + frames.frame[currFrame].maxValue.toFixed(0)) : 'none');
+  $('#eventsindicator').text(frames ? frames.frame[currFrame].particles : '0');//((particleSystem && particleSystem.geometry) ? particleSystem.geometry.attributes.position.array.length/3 : 0);
+  $('#Tindicator').text((frames && frames.frameno > 1 && !(mapping.x == -1 && mapping.y == -1 && mapping.z == -1) && frames.frame[currFrame].particles > 0) ? (frames.frame[currFrame].minValue.toFixed(0) + ' - ' + frames.frame[currFrame].maxValue.toFixed(0)) : 'none');
 }
 
 function calcWindowResize(rend, camera)
