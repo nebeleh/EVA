@@ -332,20 +332,42 @@ function updateFrame() {
   if (playMode == false)
     lastTime = currTime;
 
-  if (currTime >= lastTime + (currFrame == frames.frameno-1 ? 1500 : 500)) {
-    lastTime = currTime;
-    currFrame = (currFrame + 1 ) % frames.frameno;
-    updateParticleSystem(currFrame);
+  if (frames && frames.frameno > 1) {
+    $('#tSlider').slider('setValue', currFrame * ($('#tSlider').attr('data-slider-max') - 1) / (frames.frameno - 1) + 1);
+    if (currTime >= lastTime + (currFrame == frames.frameno-1 ? 1500 : 500)) {
+      lastTime = currTime;
+      currFrame = (currFrame + 1 ) % frames.frameno;
+      updateParticleSystem(currFrame);
+    }
+  }
+  if (!frames || frames.frameno <= 1) {
+    $('#tSlider').slider('setValue', $('#tSlider').attr('data-slider-min'));
+  }
+  $('#frameNumber').text(frames ? (currFrame+1) + '/' + frames.frameno : 'none');
+}
+
+
+function updateCurrentFrame(t, T) {
+  if (frames && frames.frameno > 1) {
+    var oldCurrFrame = currFrame;
+    currFrame = Math.round(t * (frames.frameno - 1) / (T - 1) + (1 - frames.frameno) / (T - 1));
+    playMode = false;
+    if ($('#timeController').attr('class') === 'glyphicon glyphicon-pause')
+      $('#timeController').toggleClass('glyphicon-pause').toggleClass('glyphicon-play');
+    if (oldCurrFrame != currFrame) {
+      lastTime = currTime = Date.now();
+      updateParticleSystem(currFrame);
+    }
   }
 }
 
 function animate()
 {
   requestAnimationFrame(animate);
-  if (frames && frames.frameno > 1) {
+  //if (frames && frames.frameno > 1) {
     updateFrame();
     updateInfo();
-  }
+  //}
   renderer.render(scene, camera);
   rendererCSS.render(sceneCSS, camera);
   update();

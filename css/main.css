@@ -18,8 +18,8 @@ body {
   top: 10px;
   position: fixed;
   left: 50%;
-  width: 1400px;
-  margin-left: -700px;
+  width: 1450px;
+  margin-left: -725px;
   z-index: 101;
 }
 #params4 {
@@ -28,7 +28,7 @@ body {
   left: 50%;
   width: 1400px;
   margin-left: -700px;
-  z-index: 102;
+  z-index: 99;
 }
 #stat {
   position: absolute;
@@ -65,6 +65,9 @@ body {
 }
 #TS .slider-selection {
   background: #84B4DC;
+}
+#tSlider {
+  width: 1200px;
 }
 .tablenoborder td {
   border-top: none !important;

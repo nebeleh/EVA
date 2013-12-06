@@ -44,7 +44,6 @@
           $('#Zindicator').text(z.toFixed(1));
           r = (parseFloat($('#rSlider').attr('data-slider-max')) - R.getValue() + parseFloat($('#rSlider').attr('data-slider-min')))/100;
           $('#Rindicator').text(r.toFixed(2));
-          t = T.getValue();
         };
 
         var changed = function() {
@@ -65,11 +64,16 @@
             updateDraw(x, y, z, r);
             oldR = r;
           }
+        };
+
+        var changedTime = function() {
+          t = T.getValue();
           if (t != oldT) {
-            console.log('new t: ' + t);
+            updateCurrentFrame(t, parseFloat($('#tSlider').attr('data-slider-max')));
             oldT = t;
           }
         };
+
 
         var X = $('#xSlider').slider()
         .on('slide', changed)
@@ -88,12 +92,12 @@
         .data('slider');
 
         var T = $('#tSlider').slider()
-        .on('slide', changed)
+        .on('slide', changedTime)
         .data('slider');
 
         getSliderVals();
 
-        $.getJSON('data/lehd/pa_rac_test.json'/*'data/lehd/pa_rac_all.json'*/, function(metaData) {
+        $.getJSON(/*'data/lehd/pa_rac_test.json'*/'data/lehd/pa_rac_all.json', function(metaData) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '/data/lehd/' + metaData.filename, true);
         xhr.responseType = 'arraybuffer';
@@ -141,7 +145,12 @@
         </li>
         <li>
         <ul>
-          <input type="text" class="span6" value="" data-slider-min="1" data-slider-max="10" data-slider-step="1" data-slider-value="1" id="tSlider" data-slider-id="TS" data-slider-tooltip="hide" data-slider-selection="before">
+          <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="10" data-slider-step="1" data-slider-value="1" id="tSlider" data-slider-id="TS" data-slider-tooltip="hide" data-slider-selection="before">
+        </ul>
+        </li>
+        <li>
+        <ul>
+          <span id="frameNumber">none</span>
         </ul>
         </li>
       </ul>
