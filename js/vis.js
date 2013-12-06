@@ -1,9 +1,9 @@
 var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var particleSystem, totalParticles, particleMaterial, currFrame;
+var particleSystem, totalParticles, particleMaterial, currFrame = 0;
 var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
 var X, Y, Z, R;
-var lastTime = -1, currTime;
+var lastTime = -1, currTime, playMode = true;
 
 function readData(row, col) {
   if (byteSchema[col] == 8)
@@ -54,7 +54,7 @@ function init($container, $stat, rawdata, MetaData) {
   var mercatorOffsetLat = .075;
   var mercatorScaleLong = 0.997;
   var mercatorOffsetLong = 0.007;
-  
+
   // convert lat, long to x, y
   for (var j = 1; j <= 2; j++) {
     metaData.minOfColumn[j] = Number.MAX_VALUE;
@@ -70,7 +70,7 @@ function init($container, $stat, rawdata, MetaData) {
       metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], readData(i, j));
     }
   }
-  
+
   // create scene
   scene = new THREE.Scene();
 
@@ -166,9 +166,6 @@ function init($container, $stat, rawdata, MetaData) {
   // start animating
   updateInfo();
   animate();
-
-  //setGeoLayer(true);
-  //setGeoLayer(false);
 }
 
 function initialDraw(Mapping, uX, uY, uZ, uR)
@@ -184,10 +181,13 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
 
   // creating the basic structure of frames
   frames = {};
-  if (mapping.t == -1 || metaData.maxOfColumn[mapping.t] == metaData.minOfColumn[mapping.t])
+  if (mapping.t == -1 || metaData.maxOfColumn[mapping.t] == metaData.minOfColumn[mapping.t]) {
     frames.frameno = 1;
-  else
+  } else {
     frames.frameno = 10; // TODO: receive number of buckets from user
+  }
+
+  setTimeController(true);
 
   frames.frame = [];
   for (var f = 0; f < frames.frameno; f++) {
@@ -241,7 +241,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
       positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
       positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
-      
+
       // set colors
       if (mapping.c == -1) continue;
       tempColor = new THREE.Color(0x000000);
@@ -294,7 +294,7 @@ function updateDraw(uX, uY, uZ, uR)
 }
 
 function updateInfo() {
-  $('#eventsindicator').text(frames ? frames.frame[currFrame].particles : '0');//((particleSystem && particleSystem.geometry) ? particleSystem.geometry.attributes.position.array.length/3 : 0);
+  $('#eventsindicator').text((frames && frames.frame) ? frames.frame[currFrame].particles : '0');
   $('#Tindicator').text((frames && frames.frameno > 1 && !(mapping.x == -1 && mapping.y == -1 && mapping.z == -1) && frames.frame[currFrame].particles > 0) ? (frames.frame[currFrame].minValue.toFixed(0) + ' - ' + frames.frame[currFrame].maxValue.toFixed(0)) : 'none');
 }
 
@@ -328,6 +328,9 @@ function updateFrame() {
     currFrame = 0;
   }
   currTime = Date.now();
+
+  if (playMode == false)
+    lastTime = currTime;
 
   if (currTime >= lastTime + (currFrame == frames.frameno-1 ? 1500 : 500)) {
     lastTime = currTime;
@@ -395,25 +398,52 @@ function setCameraType(type)
   controls.keys = [65, 83, 68];
 }
 
+function setTimeController(initialCall) {
+  // has been called by initial draw?
+  if (initialCall) {
+    // there is no time dimension
+    if (!frames || frames.frameno <= 1) {
+      playMode = false;
+      if ($('#timeController').attr('class') === 'glyphicon glyphicon-pause')
+        $('#timeController').toggleClass('glyphicon-pause').toggleClass('glyphicon-play');
+      return;
+    }
+    // there is time dimension
+    playMode = true;
+    if ($('#timeController').attr('class') === 'glyphicon glyphicon-play')
+      $('#timeController').toggleClass('glyphicon-pause').toggleClass('glyphicon-play');
+    return;
+  }
+
+  if (frames && frames.frameno > 1) {
+    if ($('#timeController').attr('class') === 'glyphicon glyphicon-play') {
+      playMode = true;
+    } else {
+      playMode = false;
+    }
+    $('#timeController').toggleClass('glyphicon-pause').toggleClass('glyphicon-play');
+  }
+}
+
 function setCameraZ()
 {
   camera.position.set(0, 0, 10);
-  camera.lookAt(scene.position);
   camera.up = new THREE.Vector3(0, 1, 0);
+  camera.lookAt(scene.position);
 }
 
 function setCameraY()
 {
   camera.position.set(0, 10, 0);
-  camera.lookAt(scene.position);
   camera.up = new THREE.Vector3(0, 0, 1);
+  camera.lookAt(scene.position);
 }
 
 function setCameraX()
 {
   camera.position.set(10, 0, 0);
-  camera.lookAt(scene.position);
   camera.up = new THREE.Vector3(0, 0, 1);
+  camera.lookAt(scene.position);
 }
 
 function setAxisHelper(s)

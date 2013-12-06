@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Visualization</title>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet">i
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css"> 
     <link href="css/slider.css" rel="stylesheet">
     <link href="css/main.css" rel="stylesheet">
@@ -24,7 +25,7 @@
         else if (dropdownId == "zDimensionDropdown") { mapping.z = dimensionIndex; }
         else if (dropdownId == "cDimensionDropdown") { mapping.c = dimensionIndex; }
         else if (dropdownId == "tDimensionDropdown") { mapping.t = dimensionIndex; }
-        $('#' + dropdownId).html(dimensionName.substr(0,9) + ' <span class="caret"></span>');
+        $('#' + dropdownId).html(dimensionName.substr(0,24) + ' <span class="caret"></span>');
         initialDraw(mapping, x, y, z, r);
       };
 
@@ -32,7 +33,7 @@
 
         $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
 
-        var oldX = -100, oldY = -100, oldZ = -100, oldR = -100;
+        var oldX = -100, oldY = -100, oldZ = -100, oldR = -100, oldT = -100;
 
         var getSliderVals = function() {
           x = (parseFloat($('#xSlider').attr('data-slider-max')) - X.getValue() + parseFloat($('#xSlider').attr('data-slider-min')))/10;
@@ -43,6 +44,7 @@
           $('#Zindicator').text(z.toFixed(1));
           r = (parseFloat($('#rSlider').attr('data-slider-max')) - R.getValue() + parseFloat($('#rSlider').attr('data-slider-min')))/100;
           $('#Rindicator').text(r.toFixed(2));
+          t = T.getValue();
         };
 
         var changed = function() {
@@ -63,6 +65,10 @@
             updateDraw(x, y, z, r);
             oldR = r;
           }
+          if (t != oldT) {
+            console.log('new t: ' + t);
+            oldT = t;
+          }
         };
 
         var X = $('#xSlider').slider()
@@ -81,9 +87,13 @@
         .on('slide', changed)
         .data('slider');
 
+        var T = $('#tSlider').slider()
+        .on('slide', changed)
+        .data('slider');
+
         getSliderVals();
 
-        $.getJSON(/*'data/lehd/pa_rac_test.json'*/'data/lehd/pa_rac_all.json', function(metaData) {
+        $.getJSON('data/lehd/pa_rac_test.json'/*'data/lehd/pa_rac_all.json'*/, function(metaData) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '/data/lehd/' + metaData.filename, true);
         xhr.responseType = 'arraybuffer';
@@ -118,6 +128,25 @@
   <div id="stat"></div>
   <div id="drawCanvas"></div>
 
+  <div id="params4">
+    <div class="panel panel-info">
+      <div class="panel-heading">
+        <h3 class="panel-title">Time Slider</h3>
+      </div>
+      <ul class="nav nav-pills">
+        <li>
+        <button type="button" class="btn btn-primary btnblock" onclick="setTimeController(false);">
+          <span id="timeController" class="glyphicon glyphicon-play"></span>
+        </button>
+        </li>
+        <li>
+        <ul>
+          <input type="text" class="span6" value="" data-slider-min="1" data-slider-max="10" data-slider-step="1" data-slider-value="1" id="tSlider" data-slider-id="TS" data-slider-tooltip="hide" data-slider-selection="before">
+        </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
   <div id="params3">
     <div class="panel panel-info">
       <div class="panel-heading">

@@ -18,9 +18,17 @@ body {
   top: 10px;
   position: fixed;
   left: 50%;
-  width: 900px;
-  margin-left: -450px;
+  width: 1400px;
+  margin-left: -700px;
   z-index: 101;
+}
+#params4 {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  width: 1400px;
+  margin-left: -700px;
+  z-index: 102;
 }
 #stat {
   position: absolute;
@@ -52,6 +60,12 @@ body {
 #RS .slider-selection {
   background: #F5CA8C;
 }
+#TS .slider-handle {
+  background: blue;
+}
+#TS .slider-selection {
+  background: #84B4DC;
+}
 .tablenoborder td {
   border-top: none !important;
   padding-top: 20px !important;
@@ -59,5 +73,5 @@ body {
   text-align: center !important;
 }
 .dropdown{
-  width: 115px !important;
+  width: 220px !important;
 }
