@@ -20,15 +20,19 @@ function writeData(row, col, value) {
 }
 
 function aggregator(row, col, rangeMin, rangeMax) {
+  // don't change lat/long
   if (col == 1 || col == 2)
     return readData(row, col);
 
-  if (col >= 4 && col <= 43) // divide by total number of jobs
+  // for jobs categories, devide number of jobs by total number of jobs
+  if (col >= 4 && col <= 43)
     return (readData(row, 3) == 0) ? rangeMin : (readData(row, col) / readData(row, 3) * (rangeMax - rangeMin) + rangeMin);
 
+  // if max and min are equal, return minimum desired range
   if (metaData.minOfColumn[col] == metaData.maxOfColumn[col])
     return rangeMin;
 
+  // if none above, normalize within the desired range
   return (readData(row, col) - metaData.minOfColumn[col]) / (metaData.maxOfColumn[col] - metaData.minOfColumn[col]) * (rangeMax - rangeMin) + rangeMin;
 }
 
