@@ -41,9 +41,9 @@
           jQuery(this).html(newHTML);
         });
         mapping.x = mapping.y = mapping.z = mapping.c = mapping.t = -1;
+        initialDraw(mapping, x, y, z, r);
 
         if (datapath === -1) {
-          initialDraw(mapping, x, y, z, r);
           return;
         }
         $('#loadAlert').show();
