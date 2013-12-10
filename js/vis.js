@@ -1,4 +1,4 @@
-var renderer, camera, scence, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
+var renderer, camera, scene, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame = 0;
 var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
@@ -23,6 +23,16 @@ function aggregator(row, col, rangeMin, rangeMax) {
   // don't change lat/long
   if (col == 1 || col == 2)
     return readData(row, col);
+
+  // experiment --------------
+/*  if (col == 0) {
+    for (var i = 10; i <= 29; i++) {
+      if (readData(row, 11) < readData(row, i))
+        return 0;
+    }
+    return 1;
+  }*/
+  // -------------------------
 
   // for jobs categories, devide number of jobs by total number of jobs
   if (col >= 4 && col <= 43)
@@ -106,30 +116,36 @@ function init($container, $stat, rawdata, MetaData) {
 
   sceneCSS = new THREE.Scene();
 
-  rendererCSS = new THREE.CSS3DRenderer();
-  rendererCSS.setSize(window.innerWidth, window.innerHeight);
-  rendererCSS.domElement.style.position = 'absolute';
-  rendererCSS.domElement.style.top = 0;
-  rendererCSS.domElement.style.margin = 0;
-  rendererCSS.domElement.style.padding = 0;
-  $container.append(rendererCSS.domElement);
+  if (!rendererCSS) {
+    rendererCSS = new THREE.CSS3DRenderer();
+    rendererCSS.setSize(window.innerWidth, window.innerHeight);
+    rendererCSS.domElement.style.position = 'absolute';
+    rendererCSS.domElement.style.top = '0px';
+    rendererCSS.domElement.style.left = '0px';
+    rendererCSS.domElement.style.zIndex = 1;
+    $container.append(rendererCSS.domElement);
+  }
 
   // stats
-  stats = new Stats();
-  $stat.append(stats.domElement);
+  if (!stats) {
+    stats = new Stats();
+    $stat.append(stats.domElement);
+  }
 
   // renderer
-  if (window.WebGLRenderingContext)
-    renderer = new THREE.WebGLRenderer({antialias: true});
-  else
-    renderer = new THREE.CanvasRenderer();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0xffffff, 1);
-  renderer.domElement.style.position = 'absolute';
-  renderer.domElement.style.top = '0px';
-  renderer.domElement.style.left = '0px';
-  renderer.domElement.style.zIndex = 0;
-  $container.append(renderer.domElement);
+  if (!renderer) {
+    if (window.WebGLRenderingContext)
+      renderer = new THREE.WebGLRenderer({antialias: true});
+    else
+      renderer = new THREE.CanvasRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0xffffff, 1);
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0px';
+    renderer.domElement.style.left = '0px';
+    renderer.domElement.style.zIndex = 1;
+    $container.append(renderer.domElement);
+  }
 
   // camera
   setCameraType("perspective");
@@ -174,6 +190,7 @@ function init($container, $stat, rawdata, MetaData) {
 
 function initialDraw(Mapping, uX, uY, uZ, uR)
 {
+  if (!scene) return;
   scene.remove(particleSystem);
 
   mapping = Mapping;
@@ -369,8 +386,8 @@ function animate()
 {
   requestAnimationFrame(animate);
   //if (frames && frames.frameno > 1) {
-    updateFrame();
-    updateInfo();
+  updateFrame();
+  updateInfo();
   //}
   renderer.render(scene, camera);
   rendererCSS.render(sceneCSS, camera);
