@@ -5,6 +5,10 @@ var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffs
 var X, Y, Z, R;
 var lastTime = -1, currTime, playMode = true;
 
+// experiment ---------
+var latbins = 1000, longbins = 1000, timebins = 10, agg, cnt, xbinsize, ybinsize, maxBinAve, minBinAve;
+// --------------------
+
 function readData(row, col) {
   if (byteSchema[col] == 8)
     return datapoints.getFloat64(row*byteOffsets[byteOffsets.length-1]+byteOffsets[col], true);
@@ -25,13 +29,24 @@ function aggregator(row, col, rangeMin, rangeMax) {
     return readData(row, col);
 
   // experiment --------------
-/*  if (col == 0) {
-    for (var i = 10; i <= 29; i++) {
-      if (readData(row, 11) < readData(row, i))
-        return 0;
-    }
-    return 1;
-  }*/
+  if (col == 0) {    
+    ti = readData(row, 55) - metaData.minOfColumn[55];
+    if (!ti) return NaN;
+    xi = Math.floor((readData(row, 2) - metaData.minOfColumn[2]) / xbinsize);
+    if (xi == longbins) xi--;
+    yi = Math.floor((readData(row, 1) - metaData.minOfColumn[1]) / ybinsize);
+    if (yi == latbins) yi--;
+    var d1_1 = agg[xi * latbins * timebins + yi * timebins + ti];
+    var d2_1 = cnt[xi * latbins * timebins + yi * timebins + ti];
+    if (!d2_1) return NaN;
+    //return (d1_1 / d2_1) / maxBinAve;
+    var d1_0 = agg[xi * latbins * timebins + yi * timebins + ti - 1];
+    var d2_0 = cnt[xi * latbins * timebins + yi * timebins + ti - 1];
+    if (!d2_0) return NaN;
+    //return (d1_1 / d2_1 - d1_0 / d2_0) / (d1_0 / d2_0);
+    var diff = d1_1 / d2_1 - d1_0 / d2_0;
+    return diff / (maxBinAve - minBinAve) * 10; 
+  }
   // -------------------------
 
   // for jobs categories, devide number of jobs by total number of jobs
@@ -242,6 +257,42 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       frames.frame[f].j = -1;
     }
 
+    // experiment -------------
+    if (mapping.c != -1) {
+      var aggBuffer = new ArrayBuffer(latbins * longbins * timebins * 4);
+      agg = new Uint32Array(aggBuffer);
+      var cntBuffer = new ArrayBuffer(latbins * longbins * timebins * 4);
+      cnt = new Uint32Array(cntBuffer);
+      var xi, yi, ti;
+      xbinsize = (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) / longbins;
+      ybinsize = (metaData.maxOfColumn[1] - metaData.minOfColumn[1]) / latbins;
+      for (var i = 0; i < totalParticles; i++) {
+        ti = readData(i, 55) - metaData.minOfColumn[55];
+        xi = Math.floor((readData(i, 2) - metaData.minOfColumn[2]) / xbinsize);
+        if (xi == longbins) xi--;
+        yi = Math.floor((readData(i, 1) - metaData.minOfColumn[1]) / ybinsize);
+        if (yi == latbins) yi--;
+        agg[xi * latbins * timebins + yi * timebins + ti] += readData(i, 3);
+        cnt[xi * latbins * timebins + yi * timebins + ti]++;
+      }
+
+      maxBinAve = -1;
+      minBinAve = 10000000;
+      var d1, d2;
+      for (var x = 0; x < longbins; x++)
+        for (var y = 0; y < latbins; y++)
+          for (var t = 0; t < timebins; t++) {
+            d1 = agg[x * latbins * timebins + y * timebins + t];
+            d2 = cnt[x * latbins * timebins + y * timebins + t];
+            if (!d2) continue;
+            if (d1/d2 < minBinAve) minBinAve = d1 / d2;
+            if (d1/d2 > maxBinAve) maxBinAve = d1 / d2;
+          }
+      console.log('min average: ' + minBinAve);
+      console.log('max average: ' + maxBinAve);
+    }
+    // ------------------------
+
     var tempColor, dummy, j;
     for (var i = 0, j = -1; i < totalParticles; i++) {
 
@@ -271,7 +322,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
         positions[j*3] = NaN;
         continue;
       }
-      tempColor.setHSL(dummy * .8 + .2, 1., .5);
+      tempColor.setHSL((dummy >= 0) ? Math.min(dummy, 1) * .3 + .7 : Math.max(dummy, -1) * .3 + .5, 1., .5);
       var colors = frames.frame[frameIndex].geometry.attributes.color.array;
       colors[j*3]   = tempColor.r;
       colors[j*3+1] = tempColor.g;
