@@ -5,11 +5,7 @@ var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffs
 var X, Y, Z, R;
 var lastTime = -1, currTime, playMode = true;
 
-// experiment ---------
-//var latbins = 1000, longbins = 1000, timebins = 10, agg, cnt, xbinsize, ybinsize, maxBinAve, minBinAve;
-var kdtree, kdtreeExtremes, kdtreeCounter, dimMapper = [1, 2, 55], range = [0.05, 0.05, 0], neighbors = [];
-var DIMS = dimMapper.length;
-// --------------------
+var latbins = 1000, longbins = 1000, timebins = 10, agg, cnt, xbinsize, ybinsize, maxBinAve, minBinAve;
 
 function readData(row, col) {
   if (byteSchema[col] == 8)
@@ -30,26 +26,7 @@ function aggregator(row, col, rangeMin, rangeMax) {
   if (col == 1 || col == 2)
     return readData(row, col);
 
-  // experiment --------------
   if (col == 0) {
-    neighbors = [];
-    var x = readData(row, 1), y = readData(row, 2), t = readData(row, 55);
-    kdtreeNeighbors([x - range[0], y - range[1], t - range[2]], [x + range[0], y + range[1], t + range[2]], 0, 0);
-    var total = 0;
-    if (neighbors.length > 0) {
-      for (var i =0; i < neighbors.length; i++)
-        total += readData(neighbors[i], 3);
-      return total / neighbors.length / metaData.maxOfColumn[3] * 100;
-    }
-    return -1;
-
-
-
-
-
-
-
-
     ti = readData(row, 55) - metaData.minOfColumn[55];
     if (!ti) return NaN;
     xi = Math.floor((readData(row, 2) - metaData.minOfColumn[2]) / xbinsize);
@@ -67,7 +44,6 @@ function aggregator(row, col, rangeMin, rangeMax) {
     var diff = d1_1 / d2_1 - d1_0 / d2_0;
     return diff / (maxBinAve - minBinAve) * 10; 
   }
-  // -------------------------
 
   // for jobs categories, devide number of jobs by total number of jobs
   if (col >= 4 && col <= 43)
@@ -80,74 +56,6 @@ function aggregator(row, col, rangeMin, rangeMax) {
   // if none above, normalize within the desired range
   return (readData(row, col) - metaData.minOfColumn[col]) / (metaData.maxOfColumn[col] - metaData.minOfColumn[col]) * (rangeMax - rangeMin) + rangeMin;
 }
-
-// experiment ---------------------------------
-function kdtreeInsert(value_index, curr_node, curr_dim) {
-  // empty node
-  if (curr_node == value_index)
-    return;
-
-  if (readData(value_index, dimMapper[curr_dim]) < readData(curr_node, dimMapper[curr_dim])) {
-    //kdtreeCounter[2*curr_node]++;
-    // is left child empty?
-    if (kdtree[2*curr_node] == 0) {
-      kdtree[2*curr_node] = value_index + 1;
-      kdtreeExtremes[2*curr_node] = value_index + 1;
-      kdtreeCounter[2*curr_node]++;
-    } else {
-      kdtreeInsert(value_index, kdtree[2*curr_node] - 1, (curr_dim + 1) % DIMS);
-      kdtreeCounter[2*curr_node] = Math.max(kdtreeCounter[2*(kdtree[2*curr_node]-1)], kdtreeCounter[2*(kdtree[2*curr_node]-1)+1]) + 1;
-      if (readData(value_index, dimMapper[curr_dim]) < readData(kdtreeExtremes[2*curr_node] - 1, dimMapper[curr_dim]))
-        kdtreeExtremes[2*curr_node] = value_index + 1;
-    }
-  } else {
-    //kdtreeCounter[2*curr_node+1]++;
-    // is right child empty?
-    if (kdtree[2*curr_node+1] == 0) {
-      kdtree[2*curr_node+1] = value_index + 1;
-      kdtreeExtremes[2*curr_node+1] = value_index + 1;
-      kdtreeCounter[2*curr_node+1]++;
-    } else {
-      kdtreeInsert(value_index, kdtree[2*curr_node+1] - 1, (curr_dim + 1) % DIMS);
-      kdtreeCounter[2*curr_node+1] = Math.max(kdtreeCounter[2*(kdtree[2*curr_node+1]-1)], kdtreeCounter[2*(kdtree[2*curr_node+1]-1)+1]) + 1;
-      if (readData(value_index, dimMapper[curr_dim]) > readData(kdtreeExtremes[2*curr_node+1] - 1, dimMapper[curr_dim]))
-        kdtreeExtremes[2*curr_node+1] = value_index + 1;
-    }
-  }
-}
-
-function isInRange(src, dst) {
-  for (var i = 0; i < DIMS; i++)
-    if (Math.abs(readData(src, dimMapper[i]) - readData(dst, dimMapper[i])) > range[i])
-      return false;
-  return true;
-}
-
-// filters nodes that are in acceptable range
-function kdtreeNeighbors(min_range, max_range, curr_node, curr_dim) {
-  // if this node is in acceptable range, add it to neighbors
-  var isInRange = true;
-  for (var i = 0; i < DIMS; i++)
-    if (min_range[i] > readData(curr_node, dimMapper[i]) || max_range[i] < readData(curr_node, dimMapper[i])) {
-      isInRange = false;
-      break;
-    }
-
-  if (isInRange)
-    neighbors.push(curr_node);
-
-  // search children
-  if (kdtree[2*curr_node] != 0 && min_range[curr_dim] < readData(curr_node, dimMapper[curr_dim]) && max_range[curr_dim] >= readData(kdtreeExtremes[2*curr_node] - 1, dimMapper[curr_dim])) kdtreeNeighbors(min_range, max_range, kdtree[2*curr_node] - 1, (curr_dim + 1) % DIMS);
-  if (kdtree[2*curr_node+1] != 0 && max_range[curr_dim] >= readData(curr_node, dimMapper[curr_dim]) && min_range[curr_dim] <= readData(kdtreeExtremes[2*curr_node+1] - 1, dimMapper[curr_dim])) kdtreeNeighbors(min_range, max_range, kdtree[2*curr_node+1] - 1, (curr_dim + 1) % DIMS);
-}
-
-function writeChildren(node, level) {
-  if (level <= 0) return;
-  console.log('layer ' + level + ' & node ' + node + ', l: ' + kdtreeCounter[2*node] + ', r: ' + kdtreeCounter[2*node+1]);
-  if (kdtree[2*node]) writeChildren(kdtree[2*node]-1, level-1);
-  if (kdtree[2*node+1]) writeChildren(kdtree[2*node+1]-1, level-1);
-}
-// --------------------------------------------
 
 function init($container, $stat, rawdata, MetaData) {
   // perfome preprocessing on rawdata
@@ -187,44 +95,6 @@ function init($container, $stat, rawdata, MetaData) {
       metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], readData(i, j));
     }
   }
-
-  // experiment --------------------------------
-  // building kd tree
-  var buf = new ArrayBuffer(totalParticles * 2 * 4);
-  kdtree = new Uint32Array(buf); // keeps the indices of left and right children
-  var buf = new ArrayBuffer(totalParticles * 2 * 4);
-  kdtreeExtremes = new Uint32Array(buf); // keeps the min of left subtree and max of right subtree
-  var buf = new ArrayBuffer(totalParticles * 2 * 4);
-  kdtreeCounter = new Uint32Array(buf); // keeps the number of children in each subtree
-  // shuffling the input in order to make the final kd tree more balanced
-  var buf = new ArrayBuffer(totalParticles * 4);
-  shuffle = new Uint32Array(buf);
-  for (var i = 0; i < shuffle.length; i++)
-    shuffle[i] = i;
-  for (var i, t, m = shuffle.length-1; m > 0; m--) {
-    i = Math.floor(Math.random() * m);
-    t = shuffle[m];
-    shuffle[m] = shuffle[i];
-    shuffle[i] = t;
-  }
-
-  // inserting nodes into tree
-  for (var i = 0; i < totalParticles; i++) {
-    kdtreeInsert(shuffle[i], 0, 0);
-  }
-
-  /*console.log('total particles: ' + totalParticles);
-  writeChildren(0, 5);
-  return;*/
-
-  // testing
-  /*for (var sourceIndex = 0; sourceIndex < totalParticles; sourceIndex++) {
-    neighbors = [];
-    kdtreeNeighbors(sourceIndex, 0, 0);
-  }
-
-  return;*/
-  // -------------------------------------------
 
   // create scene
   scene = new THREE.Scene();
@@ -383,8 +253,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       frames.frame[f].j = -1;
     }
 
-    // experiment -------------
-    /*if (mapping.c != -1) {
+    if (mapping.c != -1) {
       var aggBuffer = new ArrayBuffer(latbins * longbins * timebins * 4);
       agg = new Uint32Array(aggBuffer);
       var cntBuffer = new ArrayBuffer(latbins * longbins * timebins * 4);
@@ -416,8 +285,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
           }
       console.log('min average: ' + minBinAve);
       console.log('max average: ' + maxBinAve);
-    }*/
-    // ------------------------
+    }
 
     var tempColor, dummy, j;
     for (var i = 0, j = -1; i < totalParticles; i++) {

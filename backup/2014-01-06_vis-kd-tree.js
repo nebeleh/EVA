@@ -5,11 +5,8 @@ var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffs
 var X, Y, Z, R;
 var lastTime = -1, currTime, playMode = true;
 
-// experiment ---------
-//var latbins = 1000, longbins = 1000, timebins = 10, agg, cnt, xbinsize, ybinsize, maxBinAve, minBinAve;
-var kdtree, kdtreeExtremes, kdtreeCounter, dimMapper = [1, 2, 55], range = [0.05, 0.05, 0], neighbors = [];
+var kdtree, kdtreeExtremes, dimMapper = [1, 2, 55], range = [0.05, 0.05, 0], neighbors = [];
 var DIMS = dimMapper.length;
-// --------------------
 
 function readData(row, col) {
   if (byteSchema[col] == 8)
@@ -30,7 +27,6 @@ function aggregator(row, col, rangeMin, rangeMax) {
   if (col == 1 || col == 2)
     return readData(row, col);
 
-  // experiment --------------
   if (col == 0) {
     neighbors = [];
     var x = readData(row, 1), y = readData(row, 2), t = readData(row, 55);
@@ -41,33 +37,6 @@ function aggregator(row, col, rangeMin, rangeMax) {
         total += readData(neighbors[i], 3);
       return total / neighbors.length / metaData.maxOfColumn[3] * 100;
     }
-    return -1;
-
-
-
-
-
-
-
-
-    ti = readData(row, 55) - metaData.minOfColumn[55];
-    if (!ti) return NaN;
-    xi = Math.floor((readData(row, 2) - metaData.minOfColumn[2]) / xbinsize);
-    if (xi == longbins) xi--;
-    yi = Math.floor((readData(row, 1) - metaData.minOfColumn[1]) / ybinsize);
-    if (yi == latbins) yi--;
-    var d1_1 = agg[xi * latbins * timebins + yi * timebins + ti];
-    var d2_1 = cnt[xi * latbins * timebins + yi * timebins + ti];
-    if (!d2_1) return NaN;
-    //return (d1_1 / d2_1) / maxBinAve;
-    var d1_0 = agg[xi * latbins * timebins + yi * timebins + ti - 1];
-    var d2_0 = cnt[xi * latbins * timebins + yi * timebins + ti - 1];
-    if (!d2_0) return NaN;
-    //return (d1_1 / d2_1 - d1_0 / d2_0) / (d1_0 / d2_0);
-    var diff = d1_1 / d2_1 - d1_0 / d2_0;
-    return diff / (maxBinAve - minBinAve) * 10; 
-  }
-  // -------------------------
 
   // for jobs categories, devide number of jobs by total number of jobs
   if (col >= 4 && col <= 43)
@@ -81,19 +50,16 @@ function aggregator(row, col, rangeMin, rangeMax) {
   return (readData(row, col) - metaData.minOfColumn[col]) / (metaData.maxOfColumn[col] - metaData.minOfColumn[col]) * (rangeMax - rangeMin) + rangeMin;
 }
 
-// experiment ---------------------------------
 function kdtreeInsert(value_index, curr_node, curr_dim) {
   // empty node
   if (curr_node == value_index)
     return;
 
   if (readData(value_index, dimMapper[curr_dim]) < readData(curr_node, dimMapper[curr_dim])) {
-    //kdtreeCounter[2*curr_node]++;
     // is left child empty?
     if (kdtree[2*curr_node] == 0) {
       kdtree[2*curr_node] = value_index + 1;
       kdtreeExtremes[2*curr_node] = value_index + 1;
-      kdtreeCounter[2*curr_node]++;
     } else {
       kdtreeInsert(value_index, kdtree[2*curr_node] - 1, (curr_dim + 1) % DIMS);
       kdtreeCounter[2*curr_node] = Math.max(kdtreeCounter[2*(kdtree[2*curr_node]-1)], kdtreeCounter[2*(kdtree[2*curr_node]-1)+1]) + 1;
@@ -101,12 +67,10 @@ function kdtreeInsert(value_index, curr_node, curr_dim) {
         kdtreeExtremes[2*curr_node] = value_index + 1;
     }
   } else {
-    //kdtreeCounter[2*curr_node+1]++;
     // is right child empty?
     if (kdtree[2*curr_node+1] == 0) {
       kdtree[2*curr_node+1] = value_index + 1;
       kdtreeExtremes[2*curr_node+1] = value_index + 1;
-      kdtreeCounter[2*curr_node+1]++;
     } else {
       kdtreeInsert(value_index, kdtree[2*curr_node+1] - 1, (curr_dim + 1) % DIMS);
       kdtreeCounter[2*curr_node+1] = Math.max(kdtreeCounter[2*(kdtree[2*curr_node+1]-1)], kdtreeCounter[2*(kdtree[2*curr_node+1]-1)+1]) + 1;
@@ -114,13 +78,6 @@ function kdtreeInsert(value_index, curr_node, curr_dim) {
         kdtreeExtremes[2*curr_node+1] = value_index + 1;
     }
   }
-}
-
-function isInRange(src, dst) {
-  for (var i = 0; i < DIMS; i++)
-    if (Math.abs(readData(src, dimMapper[i]) - readData(dst, dimMapper[i])) > range[i])
-      return false;
-  return true;
 }
 
 // filters nodes that are in acceptable range
@@ -140,14 +97,6 @@ function kdtreeNeighbors(min_range, max_range, curr_node, curr_dim) {
   if (kdtree[2*curr_node] != 0 && min_range[curr_dim] < readData(curr_node, dimMapper[curr_dim]) && max_range[curr_dim] >= readData(kdtreeExtremes[2*curr_node] - 1, dimMapper[curr_dim])) kdtreeNeighbors(min_range, max_range, kdtree[2*curr_node] - 1, (curr_dim + 1) % DIMS);
   if (kdtree[2*curr_node+1] != 0 && max_range[curr_dim] >= readData(curr_node, dimMapper[curr_dim]) && min_range[curr_dim] <= readData(kdtreeExtremes[2*curr_node+1] - 1, dimMapper[curr_dim])) kdtreeNeighbors(min_range, max_range, kdtree[2*curr_node+1] - 1, (curr_dim + 1) % DIMS);
 }
-
-function writeChildren(node, level) {
-  if (level <= 0) return;
-  console.log('layer ' + level + ' & node ' + node + ', l: ' + kdtreeCounter[2*node] + ', r: ' + kdtreeCounter[2*node+1]);
-  if (kdtree[2*node]) writeChildren(kdtree[2*node]-1, level-1);
-  if (kdtree[2*node+1]) writeChildren(kdtree[2*node+1]-1, level-1);
-}
-// --------------------------------------------
 
 function init($container, $stat, rawdata, MetaData) {
   // perfome preprocessing on rawdata
@@ -188,7 +137,6 @@ function init($container, $stat, rawdata, MetaData) {
     }
   }
 
-  // experiment --------------------------------
   // building kd tree
   var buf = new ArrayBuffer(totalParticles * 2 * 4);
   kdtree = new Uint32Array(buf); // keeps the indices of left and right children
@@ -212,19 +160,6 @@ function init($container, $stat, rawdata, MetaData) {
   for (var i = 0; i < totalParticles; i++) {
     kdtreeInsert(shuffle[i], 0, 0);
   }
-
-  /*console.log('total particles: ' + totalParticles);
-  writeChildren(0, 5);
-  return;*/
-
-  // testing
-  /*for (var sourceIndex = 0; sourceIndex < totalParticles; sourceIndex++) {
-    neighbors = [];
-    kdtreeNeighbors(sourceIndex, 0, 0);
-  }
-
-  return;*/
-  // -------------------------------------------
 
   // create scene
   scene = new THREE.Scene();
@@ -382,42 +317,6 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
 
       frames.frame[f].j = -1;
     }
-
-    // experiment -------------
-    /*if (mapping.c != -1) {
-      var aggBuffer = new ArrayBuffer(latbins * longbins * timebins * 4);
-      agg = new Uint32Array(aggBuffer);
-      var cntBuffer = new ArrayBuffer(latbins * longbins * timebins * 4);
-      cnt = new Uint32Array(cntBuffer);
-      var xi, yi, ti;
-      xbinsize = (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) / longbins;
-      ybinsize = (metaData.maxOfColumn[1] - metaData.minOfColumn[1]) / latbins;
-      for (var i = 0; i < totalParticles; i++) {
-        ti = readData(i, 55) - metaData.minOfColumn[55];
-        xi = Math.floor((readData(i, 2) - metaData.minOfColumn[2]) / xbinsize);
-        if (xi == longbins) xi--;
-        yi = Math.floor((readData(i, 1) - metaData.minOfColumn[1]) / ybinsize);
-        if (yi == latbins) yi--;
-        agg[xi * latbins * timebins + yi * timebins + ti] += readData(i, 3);
-        cnt[xi * latbins * timebins + yi * timebins + ti]++;
-      }
-
-      maxBinAve = -1;
-      minBinAve = 10000000;
-      var d1, d2;
-      for (var x = 0; x < longbins; x++)
-        for (var y = 0; y < latbins; y++)
-          for (var t = 0; t < timebins; t++) {
-            d1 = agg[x * latbins * timebins + y * timebins + t];
-            d2 = cnt[x * latbins * timebins + y * timebins + t];
-            if (!d2) continue;
-            if (d1/d2 < minBinAve) minBinAve = d1 / d2;
-            if (d1/d2 > maxBinAve) maxBinAve = d1 / d2;
-          }
-      console.log('min average: ' + minBinAve);
-      console.log('max average: ' + maxBinAve);
-    }*/
-    // ------------------------
 
     var tempColor, dummy, j;
     for (var i = 0, j = -1; i < totalParticles; i++) {
