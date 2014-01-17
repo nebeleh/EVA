@@ -6,32 +6,11 @@ var X, Y, Z, R;
 var lastTime = -1, currTime, playMode = true;
 
 // experiment ---------
-var dbf, rstWidth = 1000, rstHeight = 700, chunks = 5000;
-var rstBuffer = new Uint8Array(4 * rstWidth * rstHeight);
-var lngMin, lngMax, latMax, latMin;
-var block2id, id2row; // mapping functions
+//var latbins = 1000, longbins = 1000, timebins = 10, agg, cnt, xbinsize, ybinsize, maxBinAve, minBinAve;
+var kdtree, kdtreeExtremes, kdtreeCounter, dimMapper = [1, 2, 55], range = [0.05, 0.05, 0], neighbors = [];
+var DIMS = dimMapper.length;
+// --------------------
 
-var pi_180 = Math.PI / 180.0;
-var pi_4 = Math.PI * 4;
-
-function latToPixel(lat) {
-  var sinLat = Math.sin(lat * pi_180);
-  return (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (pi_4)) * 256;
-}
-
-function lngToPixel(lng) {
-  return ((lng + 180) / 360) * 256;
-}
-
-var lngToRaster = function(x) {
-  return rstWidth * (2. * lngToPixel(x) - lngMax - lngMin) / (2. * (lngMax - lngMin));
-};
-
-var latToRaster = function(y) {
-  return -rstHeight * (2. * latToPixel(y) - latMax - latMin) / (2. * (latMax - latMin));
-};
-
-// read and write to raw data array buffer
 function readData(row, col) {
   if (byteSchema[col] == 8)
     return datapoints.getFloat64(row*byteOffsets[byteOffsets.length-1]+byteOffsets[col], true);
@@ -47,38 +26,37 @@ function writeData(row, col, value) {
 }
 
 function aggregator(row, col, rangeMin, rangeMax) {
-  // row is visual object id. first we have to convert is to year and id in raster buffer
-  var year = Math.floor(row / (rstWidth * rstHeight)) + 2002;
-  var rstID = row % (rstWidth * rstHeight);
-  var shpID = rstBuffer[4 * rstID] * 256 * 256 + rstBuffer[4 * rstID + 1] * 256 + rstBuffer[4 * rstID + 2];
-  if (shpID == 0xffffff) return NaN; // skip over empty points
-
-  var newRow = id2row[year].get(shpID);
-  if (newRow == null) return NaN;
-
-  if (col == 1) {
-    return metaData.minOfColumn[1] + (metaData.maxOfColumn[1] - metaData.minOfColumn[1]) * Math.floor(rstID / rstWidth) / rstHeight;
-  }
-
-  if (col == 2) {
-    return metaData.minOfColumn[2] + (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * (rstID % rstWidth) / rstWidth;
-  }
-
-  // for total number of jobs, return the density of jobs
-  if (col == 3) {
-    return 1000 * readData(newRow, col) / (dbf.records[shpID].ALAND + dbf.records[shpID].AWATER);
-  }
-
-  return; // for now, let's only work on lat, long and total number of jobs
-
   // don't change lat/long
   if (col == 1 || col == 2)
     return readData(row, col);
 
-  // experiment with different aggregators
+  // experiment --------------
   if (col == 0) {
-    return NaN;
+    neighbors = [];
+    var x = readData(row, 1), y = readData(row, 2), t = readData(row, 55);
+//    if (t == metaData.minOfColumn[55]) return NaN;
+    kdtreeNeighbors([x - range[0], y - range[1], t - range[2]], [x + range[0], y + range[1], t + range[2]], 0, 0);
+    var total = 0, ave1 = 0;
+    if (neighbors.length > 0) {
+      for (var i =0; i < neighbors.length; i++)
+        total += readData(neighbors[i], 3);
+      ave1 = total / neighbors.length;
+    }
+return ave1 / 100;
+    neighbors = [];
+    t--;
+    kdtreeNeighbors([x - range[0], y - range[1], t - range[2]], [x + range[0], y + range[1], t + range[2]], 0, 0);
+    total = 0;
+    var ave2 = 0;
+    if (neighbors.length > 0) {
+      for (var i = 0; i < neighbors.length; i++)
+        total += readData(neighbors[i], 3);
+      ave2 = total / neighbors.length;
+    }
+
+    return (ave1 - ave2) / 60;
   }
+  // -------------------------
 
   // for jobs categories, devide number of jobs by total number of jobs
   if (col >= 4 && col <= 43)
@@ -92,7 +70,68 @@ function aggregator(row, col, rangeMin, rangeMax) {
   return (readData(row, col) - metaData.minOfColumn[col]) / (metaData.maxOfColumn[col] - metaData.minOfColumn[col]) * (rangeMax - rangeMin) + rangeMin;
 }
 
-function init($container, $stat, rawdata, MetaData, sh, db) {
+// experiment ---------------------------------
+function kdtreeInsert(value_index, curr_node, curr_dim) {
+  // empty node
+  if (curr_node == value_index)
+    return;
+
+  if (readData(value_index, dimMapper[curr_dim]) < readData(curr_node, dimMapper[curr_dim])) {
+    //kdtreeCounter[2*curr_node]++;
+    // is left child empty?
+    if (kdtree[2*curr_node] == 0) {
+      kdtree[2*curr_node] = value_index + 1;
+      kdtreeExtremes[2*curr_node] = value_index + 1;
+      kdtreeCounter[2*curr_node]++;
+    } else {
+      kdtreeInsert(value_index, kdtree[2*curr_node] - 1, (curr_dim + 1) % DIMS);
+      kdtreeCounter[2*curr_node] = Math.max(kdtreeCounter[2*(kdtree[2*curr_node]-1)], kdtreeCounter[2*(kdtree[2*curr_node]-1)+1]) + 1;
+      if (readData(value_index, dimMapper[curr_dim]) < readData(kdtreeExtremes[2*curr_node] - 1, dimMapper[curr_dim]))
+        kdtreeExtremes[2*curr_node] = value_index + 1;
+    }
+  } else {
+    //kdtreeCounter[2*curr_node+1]++;
+    // is right child empty?
+    if (kdtree[2*curr_node+1] == 0) {
+      kdtree[2*curr_node+1] = value_index + 1;
+      kdtreeExtremes[2*curr_node+1] = value_index + 1;
+      kdtreeCounter[2*curr_node+1]++;
+    } else {
+      kdtreeInsert(value_index, kdtree[2*curr_node+1] - 1, (curr_dim + 1) % DIMS);
+      kdtreeCounter[2*curr_node+1] = Math.max(kdtreeCounter[2*(kdtree[2*curr_node+1]-1)], kdtreeCounter[2*(kdtree[2*curr_node+1]-1)+1]) + 1;
+      if (readData(value_index, dimMapper[curr_dim]) > readData(kdtreeExtremes[2*curr_node+1] - 1, dimMapper[curr_dim]))
+        kdtreeExtremes[2*curr_node+1] = value_index + 1;
+    }
+  }
+}
+
+// filters nodes that are in acceptable range
+function kdtreeNeighbors(min_range, max_range, curr_node, curr_dim) {
+  // if this node is in acceptable range, add it to neighbors
+  var isInRange = true;
+  for (var i = 0; i < DIMS; i++)
+    if (min_range[i] > readData(curr_node, dimMapper[i]) || max_range[i] < readData(curr_node, dimMapper[i])) {
+      isInRange = false;
+      break;
+    }
+
+  if (isInRange)
+    neighbors.push(curr_node);
+
+  // search children
+  if (kdtree[2*curr_node] != 0 && min_range[curr_dim] < readData(curr_node, dimMapper[curr_dim]) && max_range[curr_dim] >= readData(kdtreeExtremes[2*curr_node] - 1, dimMapper[curr_dim])) kdtreeNeighbors(min_range, max_range, kdtree[2*curr_node] - 1, (curr_dim + 1) % DIMS);
+  if (kdtree[2*curr_node+1] != 0 && max_range[curr_dim] >= readData(curr_node, dimMapper[curr_dim]) && min_range[curr_dim] <= readData(kdtreeExtremes[2*curr_node+1] - 1, dimMapper[curr_dim])) kdtreeNeighbors(min_range, max_range, kdtree[2*curr_node+1] - 1, (curr_dim + 1) % DIMS);
+}
+
+function writeChildren(node, level) {
+  if (level <= 0) return;
+  console.log('layer ' + level + ' & node ' + node + ', l: ' + kdtreeCounter[2*node] + ', r: ' + kdtreeCounter[2*node+1]);
+  if (kdtree[2*node]) writeChildren(kdtree[2*node]-1, level-1);
+  if (kdtree[2*node+1]) writeChildren(kdtree[2*node+1]-1, level-1);
+}
+// --------------------------------------------
+
+function init($container, $stat, rawdata, MetaData) {
   // perfome preprocessing on rawdata
   metaData = MetaData;
   dimensions = metaData.BINcolumns;
@@ -106,137 +145,75 @@ function init($container, $stat, rawdata, MetaData, sh, db) {
   }
   byteOffsets.push(offset);
 
-  totalParticles = 10 * rstBuffer.length / 4;//metaData.totalRows;
+  totalParticles = metaData.totalRows;
   datapoints = new DataView(rawdata);
 
-  // experimental: load LEHD Auxiliary files and do rasterization
-  if (!sh || ! db) {
-    console.log('auxiliary data not loaded yet');
-    return;
-  }
-  var shp = sh;
-  dbf = db;
-
-  if (shp.records.length != dbf.numberOfRecords) {
-    console.log('shape file and db file doesn\'t match');
-    return;
-  }
-
-  // set hashmaps
-  block2id = new HashMap();
-  for (var i = 0; i < dbf.numberOfRecords; i++) {
-    block2id.set(parseFloat(dbf.records[i].GEOID), i);
-  }
-
-  id2row = [];
-  for (var y = 2002; y <= 2011; y++)
-    id2row[y] = new HashMap();
-
-  for (var i = 0; i < metaData.totalRows; i++) {
-    id2row[readData(i, 55)].set(block2id.get(readData(i, 0)), i);
-  }
-  
-  // setup rasterization renderer
-  var rstRenderer = new THREE.WebGLRenderer({antialias: false, sortObjects: false});
-  rstRenderer.setSize(rstWidth/window.devicePixelRatio, rstHeight/window.devicePixelRatio);
-  rstRenderer.setClearColor(0xffffff, 1);
-
-  var rstCamera = new THREE.OrthographicCamera(-rstWidth/2, rstWidth/2, rstHeight/2, -rstHeight/2, -10, 10);
-  rstCamera.position.set(0, 0, 1);
-  rstCamera.lookAt(new THREE.Vector3(0, 0, 0));
-  rstCamera.up = new THREE.Vector3(0, 1, 0);
-
-  var rstScene = new THREE.Scene();
-  rstScene.add(rstCamera);
-
-  // setting parameters for lngToRaster/latToRaster
-  lngMin = lngToPixel(shp.minX);
-  lngMax = lngToPixel(shp.maxX);
-  latMax = latToPixel(shp.minY);
-  latMin = latToPixel(shp.maxY);
-
-  // initialize raster buffer with white pixels (empty points)
-  rstRenderer.render(rstScene, rstCamera);
-  var gl = rstRenderer.getContext();
-  gl.readPixels(0, 0, rstWidth, rstHeight, gl.RGBA, gl.UNSIGNED_BYTE, rstBuffer);
-
-  // read shpae files and fill out raster buffer
-  var RECORDS = shp.records.length;
-  for (var i = 0; i < RECORDS; i++) {
-    var points = shp.records[i].shape.content.points;
-    var parts = shp.records[i].shape.content.parts;
-
-    for (var k = 0; k < parts.length; k++) {
-      var newPart = true;
-      var currShape = new THREE.Shape();
-
-      for (var j = parts[k], last = parts[k+1] || (points.length)/2; j < last; j++) {
-        var x = lngToRaster(points[j*2]);
-        var y = latToRaster(points[j*2+1]);
-
-        // first point
-        if (newPart) {
-          currShape.moveTo(x, y);
-          newPart = false;
-        } else {
-          currShape.lineTo(x, y);
-        }
-      }
-
-      var rstMesh = new THREE.Mesh(new THREE.ShapeGeometry(currShape), new THREE.MeshBasicMaterial({color: i}));
-      rstScene.add(rstMesh);
-    }
-
-    // empty webgl buffer in order to avoid overloading memory
-    if ((i > 0 && i % chunks == 0) || i == RECORDS-1) {
-      rstRenderer.render(rstScene, rstCamera);
-      var buf = new Uint8Array(rstBuffer.length);
-      gl.readPixels(0, 0, rstWidth, rstHeight, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-      for (var a = 0; a < buf.length; a++)
-        rstBuffer[a] &= buf[a];
-      delete rstScene;
-      rstScene = new THREE.Scene();
-  //    console.log('rasterized ' + 100*i/RECORDS + '\% of shapefiles');
-    }
-  }
+  // TODO: use mercator translation instead of this hand tailored code
+  var mercatorScaleLat = 1.325;
+  var mercatorOffsetLat = .075;
+  var mercatorScaleLong = 0.997;
+  var mercatorOffsetLong = 0.007;
 
   // convert lat, long to x, y
-  var mapWidth = 100;
-  var mapHeight = 60;
-  var mapResolution = 85;
-  var latCenter = (metaData.minOfColumn[1] + metaData.maxOfColumn[1]) / 2.;
-  var lngCenter = (metaData.minOfColumn[2] + metaData.maxOfColumn[2]) / 2.;
-  var dataLatMax = latToPixel(metaData.minOfColumn[1]),
-      dataLatMin = latToPixel(metaData.maxOfColumn[1]),
-      dataLngMax = lngToPixel(metaData.maxOfColumn[2]),
-      dataLngMin = lngToPixel(metaData.minOfColumn[2]),
-      mapScaleLat, mapScaleLng;
-  if (mapHeight / (dataLatMax - dataLatMin) < mapWidth / (dataLngMax - dataLngMin)) {
-    mapScaleLat = mapHeight;
-    mapScaleLng = (dataLngMax - dataLngMin) / (dataLatMax - dataLngMin) * mapHeight;
-  } else {
-    mapScaleLng = mapWidth;
-    mapScaleLat = (dataLatMax - dataLatMin) / (dataLngMax - dataLngMin) * mapWidth;
-  }
-
-  // TODO: make it better
-  mapScaleLng /= normalizingScale;
-  mapScaleLat /= normalizingScale;
-
   for (var j = 1; j <= 2; j++) {
     metaData.minOfColumn[j] = Number.MAX_VALUE;
     metaData.maxOfColumn[j] = -Number.MAX_VALUE;
-    for (var i = 0; i < metaData.totalRows/*totalParticles*/; i++) {
+    for (var i = 0; i < totalParticles; i++) {
       dummy = readData(i, j);
       if (j == 1) {
-        writeData(i, j, mapScaleLat * (1 - (latToPixel(dummy) - dataLatMin) / (dataLatMax - dataLatMin)));
+        writeData(i, j, mercatorOffsetLat + normalizingScale * (dummy - 39.7200908) / (-74.6950107 - -80.5189531) * mercatorScaleLat);
       } else if (j == 2) {
-        writeData(i, j, mapScaleLng * (lngToPixel(dummy) - dataLngMin) / (dataLngMax - dataLngMin));
+        writeData(i, j, mercatorOffsetLong + normalizingScale * (dummy - -80.5189531) / (-74.6950107 - -80.5189531) * mercatorScaleLong);
       }
       metaData.minOfColumn[j] = Math.min(metaData.minOfColumn[j], readData(i, j));
       metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], readData(i, j));
     }
   }
+
+  // experiment --------------------------------
+  // building kd tree
+  var buf = new ArrayBuffer(totalParticles * 2 * 4);
+  kdtree = new Uint32Array(buf); // keeps the indices of left and right children
+  var buf = new ArrayBuffer(totalParticles * 2 * 4);
+  kdtreeExtremes = new Uint32Array(buf); // keeps the min of left subtree and max of right subtree
+  var buf = new ArrayBuffer(totalParticles * 2 * 4);
+  kdtreeCounter = new Uint32Array(buf); // keeps the number of children in each subtree
+  // shuffling the input in order to make the final kd tree more balanced
+  var buf = new ArrayBuffer(totalParticles * 4);
+  shuffle = new Uint32Array(buf);
+  for (var i = 0; i < shuffle.length; i++)
+    shuffle[i] = i;
+  for (var i, t, m = shuffle.length-1; m > 0; m--) {
+    i = Math.floor(Math.random() * m);
+    t = shuffle[m];
+    shuffle[m] = shuffle[i];
+    shuffle[i] = t;
+  }
+
+  // inserting nodes into tree
+  for (var i = 0; i < totalParticles; i++) {
+    kdtreeInsert(shuffle[i], 0, 0);
+  }
+
+  /*console.log('total particles: ' + totalParticles);
+  writeChildren(0, 5);
+  return;*/
+
+  // testing
+  /*for (var sourceIndex = 0; sourceIndex < totalParticles; sourceIndex++) {
+    neighbors = [];
+    kdtreeNeighbors(sourceIndex, 0, 0);
+  }
+
+  return;*/
+  // -------------------------------------------
+
+  // create scene
+  scene = new THREE.Scene();
+
+  var mapWidth = 100;
+  var mapHeight = 60;
+  var mapResolution = 85;
 
   // adding Google Maps iframe layer to visualization
   var planeMaterial = new THREE.MeshBasicMaterial();
@@ -247,10 +224,9 @@ function init($container, $stat, rawdata, MetaData, sh, db) {
   planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
   planeMesh.translateX(mapWidth/2);
   planeMesh.translateY(mapHeight/2);
-  
+
   var element = document.createElement('iframe');
   var mapsURL = 'https://maps.google.com/maps?ll=41.0088559,-77.6069819&z=11&output=embed';
-//  var mapsURL = 'https://maps.google.com/maps?ll=' + latCenter + ',' + lngCenter + '&z=11&output=embed';
   element.src = mapsURL;
   element.style.width = mapResolution * mapWidth + 'px';
   element.style.height = mapResolution * mapHeight + 'px';
@@ -260,10 +236,6 @@ function init($container, $stat, rawdata, MetaData, sh, db) {
   cssObject.position.z -= 0.01;
   cssObject.rotation = planeMesh.rotation;
   cssObject.scale.multiplyScalar(1/mapResolution);
-
-  // TODO: make it automatic
-  cssObject.translateY(-1.05);
-  cssObject.translateX(-0.11);
 
   sceneCSS = new THREE.Scene();
 
@@ -297,9 +269,6 @@ function init($container, $stat, rawdata, MetaData, sh, db) {
     renderer.domElement.style.zIndex = 1;
     $container.append(renderer.domElement);
   }
-
-  // create scene
-  scene = new THREE.Scene();
 
   // camera
   setCameraType("perspective");
@@ -396,6 +365,42 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       frames.frame[f].j = -1;
     }
 
+    // experiment -------------
+    /*if (mapping.c != -1) {
+      var aggBuffer = new ArrayBuffer(latbins * longbins * timebins * 4);
+      agg = new Uint32Array(aggBuffer);
+      var cntBuffer = new ArrayBuffer(latbins * longbins * timebins * 4);
+      cnt = new Uint32Array(cntBuffer);
+      var xi, yi, ti;
+      xbinsize = (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) / longbins;
+      ybinsize = (metaData.maxOfColumn[1] - metaData.minOfColumn[1]) / latbins;
+      for (var i = 0; i < totalParticles; i++) {
+        ti = readData(i, 55) - metaData.minOfColumn[55];
+        xi = Math.floor((readData(i, 2) - metaData.minOfColumn[2]) / xbinsize);
+        if (xi == longbins) xi--;
+        yi = Math.floor((readData(i, 1) - metaData.minOfColumn[1]) / ybinsize);
+        if (yi == latbins) yi--;
+        agg[xi * latbins * timebins + yi * timebins + ti] += readData(i, 3);
+        cnt[xi * latbins * timebins + yi * timebins + ti]++;
+      }
+
+      maxBinAve = -1;
+      minBinAve = 10000000;
+      var d1, d2;
+      for (var x = 0; x < longbins; x++)
+        for (var y = 0; y < latbins; y++)
+          for (var t = 0; t < timebins; t++) {
+            d1 = agg[x * latbins * timebins + y * timebins + t];
+            d2 = cnt[x * latbins * timebins + y * timebins + t];
+            if (!d2) continue;
+            if (d1/d2 < minBinAve) minBinAve = d1 / d2;
+            if (d1/d2 > maxBinAve) maxBinAve = d1 / d2;
+          }
+      console.log('min average: ' + minBinAve);
+      console.log('max average: ' + maxBinAve);
+    }*/
+    // ------------------------
+
     var tempColor, dummy, j;
     for (var i = 0, j = -1; i < totalParticles; i++) {
 
@@ -413,18 +418,18 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
 
       // set positions
       var positions = frames.frame[frameIndex].geometry.attributes.position.array;
-      positions[j*3]   = aggregator(i, 2, 0, 10);//(mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
-      positions[j*3+1] = aggregator(i, 1, 0, 10);//(mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
-      positions[j*3+2] = aggregator(i, 3, 0, 10);//(mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
+      positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
+      positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
+      positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
 
       // set colors
       //if (mapping.c == -1) continue;
       tempColor = new THREE.Color(0x000000);
-      dummy = positions[j*3+2];//aggregator(i, mapping.c, 0, 1);
-/*      if (isNaN(dummy)) {
+      dummy = positions[j*3+2]; //aggregator(i, mapping.c, 0, 1);
+      if (isNaN(dummy)) {
         positions[j*3] = NaN;
         continue;
-      }*/
+      }
       tempColor.setHSL((dummy >= 0) ? Math.min(dummy, 1) * .3 + .7 : Math.max(dummy, -1) * .3 + .5, 1., .5);
       var colors = frames.frame[frameIndex].geometry.attributes.color.array;
       colors[j*3]   = tempColor.r;
@@ -436,7 +441,8 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       frames.frame[f].geometry.computeBoundingSphere();
     }
 
-    particleMaterial = new THREE.ParticleSystemMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.5});
+    particleMaterial = new THREE.ParticleSystemMaterial({/*blending: THREE.AdditiveBlending,*/ transparent: true, size: R, vertexColors: true, opacity: 0.5});
+    // TODO: material.alphaTest = 0.5 --> apparently this solves the problem of z-index for sprites
     updateParticleSystem(currFrame);
   }
   lastTime = Date.now();

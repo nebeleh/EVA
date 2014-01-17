@@ -16,7 +16,11 @@
     <script src="js/TrackballControls.js"></script>
     <script src="js/stats.min.js"></script>
     <script src="js/CSS3DRenderer.js"></script>
+    <script src="js/shp.js"></script>
+    <script src="js/dbf.js"></script>
+    <script src="js/hashmap.js"></script>
     <script>
+      var shp, dbf; // experimental
       var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1};
       var x, y, z, r;
       var mapDimension = function(dropdownId, dimensionName, dimensionIndex) {
@@ -61,7 +65,7 @@
           xhr.addEventListener('progress', function(evt) {
             $('#dataProgressBar').css('width', (100*evt.loaded/totalData)+'%');
           }, false);
-          
+
           xhr.onload = function(e) {
             var buf = this.response;
 
@@ -79,7 +83,8 @@
               jQuery(this).html(newHTML);
             });
 
-            init($('#drawCanvas'), $('#stat'), buf, metaData);
+            //init($('#drawCanvas'), $('#stat'), buf, metaData);
+            init($('#drawCanvas'), $('#stat'), buf, metaData, shp, dbf);
             $('#loadAlert').hide();
             $('#dataProgressBar').css('width', '0%');
             $('#overlay').remove();
@@ -167,6 +172,23 @@
             jQuery(this).html(newHTML);
           });
         });
+
+        // -------------------------
+        SHPParser.load('data/geo/tl_2011_42_tabblock.shp', shpLoad, function() { console.log('error loading shape file'); });
+        DBFParser.load('data/geo/tl_2011_42_tabblock.dbf', dbfLoad, function() { console.log('error loading dbf file'); });
+//init($('#drawCanvas'), $('#stat'), null, null, shp, dbf);
+
+        function shpLoad(data) {
+          console.log('shape file loaded');
+          shp = data;
+          //init($('#drawCanvas'), $('#stat'), null, null, shp, dbf);
+       }
+
+        function dbfLoad(data) {
+          console.log('dbf file loaded');
+          dbf = data;
+        }
+        // -------------------------  
 
       });
     </script>
