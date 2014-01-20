@@ -83,8 +83,7 @@
               jQuery(this).html(newHTML);
             });
 
-            //init($('#drawCanvas'), $('#stat'), buf, metaData);
-            init($('#drawCanvas'), $('#stat'), buf, metaData, shp, dbf);
+            init($('#drawCanvas'), $('#stat'), buf, metaData);
             $('#loadAlert').hide();
             $('#dataProgressBar').css('width', '0%');
             $('#overlay').remove();
@@ -172,24 +171,6 @@
             jQuery(this).html(newHTML);
           });
         });
-
-        // -------------------------
-        SHPParser.load('data/geo/tl_2011_42_tabblock.shp', shpLoad, function() { console.log('error loading shape file'); });
-        DBFParser.load('data/geo/tl_2011_42_tabblock.dbf', dbfLoad, function() { console.log('error loading dbf file'); });
-//init($('#drawCanvas'), $('#stat'), null, null, shp, dbf);
-
-        function shpLoad(data) {
-          console.log('shape file loaded');
-          shp = data;
-          //init($('#drawCanvas'), $('#stat'), null, null, shp, dbf);
-       }
-
-        function dbfLoad(data) {
-          console.log('dbf file loaded');
-          dbf = data;
-        }
-        // -------------------------  
-
       });
     </script>
   </head>
