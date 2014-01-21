@@ -21,7 +21,7 @@
     <script src="js/hashmap.js"></script>
     <script>
       var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1, p: 0};
-      var colorPalette = [[[165,0,38],[215,48,39],[244,109,67],[253,174,97],[254,224,144],[255,255,191],[224,243,248],[171,217,233],[116,173,209],[69,117,180],[49,54,149]], [[64,0,75],[118,42,131],[153,112,171],[194,165,207],[231,212,232],[247,247,247],[217,240,211],[166,219,160],[90,174,97],[27,120,55],[0,68,27]]];
+      var colorPalette = [[[165,0,38],[215,48,39],[244,109,67],[253,174,97],[254,224,144],[255,255,191],[224,243,248],[171,217,233],[116,173,209],[69,117,180],[49,54,149]], [[165,0,38],[215,48,39],[244,109,67],[253,174,97],[254,224,139],[255,255,191],[217,239,139],[166,217,106],[102,189,99],[26,152,80],[0,104,55]], [[64,0,75],[118,42,131],[153,112,171],[194,165,207],[231,212,232],[247,247,247],[217,240,211],[166,219,160],[90,174,97],[27,120,55],[0,68,27]], [[142,1,82],[197,27,125],[222,119,174],[241,182,218],[253,224,239],[247,247,247],[230,245,208],[184,225,134],[127,188,65],[77,146,33],[39,100,25]]];
       var x, y, z, r;
 
       var changePalette = function(p) {
@@ -88,7 +88,7 @@
               });
               jQuery(this).html(newHTML);
             });
-
+            
             init($('#drawCanvas'), $('#stat'), buf, metaData, colorPalette);
             $('#loadAlert').hide();
             $('#dataProgressBar').css('width', '0%');
@@ -171,6 +171,12 @@
 
         // set color palette
         $('#color-palette').each(function(d) {
+          var tempPalette = [];
+          for (var p = 0; p < colorPalette.length; p++) {
+            tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p])));
+            tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p].reverse())));
+          }
+          colorPalette = tempPalette;
           var newHTML = '';
           var pW = 130, pH = 20;
           for (var p = 0; p < colorPalette.length; p++) {
@@ -387,17 +393,6 @@
 
           <div class="panel panel-primary">
             <div class="panel-heading">
-              <h3 class="panel-title">Colors</h3>
-            </div>
-            <form id="color-palette">
-            </form>
-          </div>
-
-        </div>
-
-        <div id="params2">
-          <div class="panel panel-primary">
-            <div class="panel-heading">
               <h3 class="panel-title">Settings</h3>
             </div>
             <form>
@@ -431,6 +426,18 @@
                   Grid YZ Helper
                 </label>
               </div>
+            </form>
+          </div>
+
+
+        </div>
+
+        <div id="params2">
+          <div class="panel panel-primary">
+            <div class="panel-heading">
+              <h3 class="panel-title">Colors</h3>
+            </div>
+            <form id="color-palette">
             </form>
           </div>
 
