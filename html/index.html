@@ -26,7 +26,36 @@
 
       var changePalette = function(p) {
         mapping.p = p;
+        setPaletteLegend();
         initialDraw(mapping, x, y, z, r);
+      }
+
+      var setPaletteRanges = function() {
+        var pr = $('#inputPaletteMax');
+        if (pr.val() == "") pr.val(1);
+        var pm = $('#inputPaletteMid');
+        if (pm.val() == "") pm.val(0);
+        var pl = $('#inputPaletteMin');
+        if (pl.val() == "") pl.val(-1);
+        if (parseFloat(pm.val()) > parseFloat(pr.val())) pm.val(pr.val());
+        if (parseFloat(pl.val()) > parseFloat(pm.val())) pl.val(pm.val());
+        setPaletteRangesVIS(pl.val(), pm.val(), pr.val());
+        setPaletteLegend();
+        initialDraw(mapping, x, y, z, r);
+      }
+
+      var setPaletteLegend = function() {
+        var lW = 42, lH = 220, tW = 37;
+        var newHTML = '<svg width="' + lW + '" height="' + lH + '"> ';
+        var cH = lH / colorPalette[mapping.p].length;
+        for (var i = 0; i < colorPalette[mapping.p].length; i++) {
+         newHTML += '<rect fill="rgb(' + (colorPalette[mapping.p][i][0] * 0xff) + ',' + (colorPalette[mapping.p][i][1] * 0xff) + ',' + (colorPalette[mapping.p][i][2] * 0xff) + ')" y="' + (cH * (colorPalette[mapping.p].length - i - 1)) + '" width="' + (lW - tW) + '" height="' + cH + '"></rect>';
+         newHTML += '<text font-size="15px" fill="black" x="' + (lW - tW + 2) + '" y="' + (cH * (colorPalette[mapping.p].length - i - 1) + 15) + '">';
+         var v = (i >= Math.floor(colorPalette[mapping.p].length/2) ? ((i - Math.floor(colorPalette[mapping.p].length/2)) * (parseFloat($('#inputPaletteMax').val()) - parseFloat($('#inputPaletteMid').val())) / Math.ceil(colorPalette[mapping.p].length/2) + parseFloat($('#inputPaletteMid').val()) ) : (i * (parseFloat($('#inputPaletteMid').val()) - parseFloat($('#inputPaletteMin').val())) / Math.floor(colorPalette[mapping.p].length/2) + (parseFloat($('#inputPaletteMin').val())) ));
+         newHTML += (Math.floor(v*100)/100) + '</text>';
+        }
+        newHTML += ' </svg>';
+        $('#paletteLegend').html(newHTML);
       }
 
       var mapDimension = function(dropdownId, dimensionName, dimensionIndex) {
@@ -170,27 +199,32 @@
         getSliderVals();
 
         // set color palette
-        $('#color-palette').each(function(d) {
-          var tempPalette = [];
-          for (var p = 0; p < colorPalette.length; p++) {
-            tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p])));
-            tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p].reverse())));
-          }
-          colorPalette = tempPalette;
-          var newHTML = '';
-          var pW = 130, pH = 20;
-          for (var p = 0; p < colorPalette.length; p++) {
-            var cW = pW / colorPalette[p].length;
-            newHTML += '<div class="radio"> <label> <input type="radio" name="palette-radios" onclick="changePalette(' + p + ');" ';
-            if (p == 0) newHTML += 'checked'
-            newHTML += '> <svg width="' + pW + '" height="' + pH + '">';
-            for (var c = 0; c < colorPalette[p].length; c++) {
-              newHTML += '<rect fill="rgb(' + colorPalette[p][c][0] + ',' + colorPalette[p][c][1] + ',' + colorPalette[p][c][2] + ')" height="' + pH + '" width="' + cW + '" x="' + (cW*c) + '"> </rect>';
-            }
-            newHTML += ' </svg> </label> </div>';
-          }
-          jQuery(this).html(newHTML);
-        });
+        $('#inputPaletteMax').val(1);
+        $('#inputPaletteMid').val(0);
+        $('#inputPaletteMin').val(-1);
+        var tempPalette = [];
+        for (var p = 0; p < colorPalette.length; p++) {
+          tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p])));
+          tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p].reverse())));
+        }
+        colorPalette = tempPalette;
+        var newHTML = '';
+        var pW = 200, pH = 20;
+        for (var p = 0; p < colorPalette.length; p++) {
+          var cW = pW / colorPalette[p].length;
+          newHTML += '<div class="radio"> <label> <input type="radio" name="palette-radios" onclick="changePalette(' + p + ');" ';
+              if (p == 0) newHTML += 'checked';
+              newHTML += '> <svg width="' + pW + '" height="' + pH + '">';
+              for (var c = 0; c < colorPalette[p].length; c++) {
+                newHTML += '<rect fill="rgb(' + colorPalette[p][c][0] + ',' + colorPalette[p][c][1] + ',' + colorPalette[p][c][2] + ')" height="' + pH + '" width="' + cW + '" x="' + (cW*c) + '"> </rect>';
+                colorPalette[p][c][0] /= 0xff;
+                colorPalette[p][c][1] /= 0xff;
+                colorPalette[p][c][2] /= 0xff;
+              }
+              newHTML += ' </svg> </label> </div>';
+        }
+        $('#color-palette').html(newHTML);
+        setPaletteLegend();
 
         // read database metadata
         $.getJSON('data/datasets.json', function(data) {
@@ -429,7 +463,6 @@
             </form>
           </div>
 
-
         </div>
 
         <div id="params2">
@@ -437,6 +470,38 @@
             <div class="panel-heading">
               <h3 class="panel-title">Colors</h3>
             </div>
+            <table class="table table-borderless">
+              <tr>
+                <td>
+                  <div class="input-group">
+                    <span class="input-group-addon">Max:</span>
+                    <input type="number" class="form-control" id="inputPaletteMax" value="1" step="0.1">
+                  </div>
+                </td>
+                <td colspan="1" rowspan="4" id="paletteLegend"></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="input-group">
+                    <span class="input-group-addon">Mid:</span>
+                    <input type="number" class="form-control" id="inputPaletteMid" value="0" step="0.1">
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="input-group">
+                    <span class="input-group-addon">Min:</span>
+                    <input type="number" class="form-control" id="inputPaletteMin" value="-1" step="0.1">
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <button type="button" class="btn btn-default btn-block" onclick="setPaletteRanges();">Set</button>
+                </td>
+              </tr>
+            </table>
             <form id="color-palette">
             </form>
           </div>

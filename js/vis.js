@@ -87,10 +87,6 @@ function aggregator(row, col, rangeMin, rangeMax) {
 function init($container, $stat, rawdata, MetaData, cPalette) {
   // perfome preprocessing on rawdata
   colorPalette = cPalette;
-  for (var a = 0; a < colorPalette.length; a++)
-    for (var b = 0; b < colorPalette[a].length; b++)
-      for (var c = 0; c < colorPalette[a][b].length; c++)
-        colorPalette[a][b][c] /= 0xff;
   metaData = MetaData;
   dimensions = metaData.BINcolumns;
   byteSchema = metaData.byteSchema;
@@ -340,7 +336,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       frames.frame[f].geometry.computeBoundingSphere();
     }
 
-    particleMaterial = new THREE.ParticleSystemMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.5});
+    particleMaterial = new THREE.ParticleSystemMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.9});
     updateParticleSystem(currFrame);
   }
   lastTime = Date.now();
@@ -604,4 +600,10 @@ function setGeoLayer(s) {
     sceneCSS.remove(cssObject);
     scene.remove(planeMesh);
   }
+}
+
+function setPaletteRangesVIS(l, m, h) {
+  maxC = parseFloat(h);
+  midC = parseFloat(m);
+  minC = parseFloat(l);
 }

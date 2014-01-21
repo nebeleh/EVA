@@ -92,3 +92,7 @@ body {
   overflow-y: auto;
   overflow-x: auto;
 }
+.table.table-borderless td,
+.table.table-borderless th {
+  border: 0 !important;
+}
