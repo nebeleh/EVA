@@ -1,20 +1,15 @@
 var renderer, camera, scene, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
-var particleSystem, totalParticles, particleMaterial, currFrame = 0;
+var particleSystem, totalParticles, particleMaterial, currFrame = 0, colorPalette;
 var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
 var X, Y, Z, R;
 var lastTime = -1, currTime, playMode = true;
 var mapScaleLat, mapScalelng;
 
-// experiment ---------
-var dbf, rstWidth = 1000, rstHeight = 600, chunks = 5000;
-var rstBuffer = new Uint8Array(4 * rstWidth * rstHeight);
-var lngMin, lngMax, latMax, latMin;
-var block2id, id2row; // mapping functions
-
 var pi_180 = Math.PI / 180.0;
 var pi_4 = Math.PI * 4;
 
+// convert lat and long to pixels
 function latToPixel(lat) {
   var sinLat = Math.sin(lat * pi_180);
   return (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (pi_4)) * 256;
@@ -23,14 +18,6 @@ function latToPixel(lat) {
 function lngToPixel(lng) {
   return ((lng + 180) / 360) * 256;
 }
-
-var lngToRaster = function(x) {
-  return rstWidth * (2. * lngToPixel(x) - lngMax - lngMin) / (2. * (lngMax - lngMin));
-};
-
-var latToRaster = function(y) {
-  return -rstHeight * (2. * latToPixel(y) - latMax - latMin) / (2. * (latMax - latMin));
-};
 
 // read and write to raw data array buffer
 function readData(row, col) {
@@ -47,43 +34,45 @@ function writeData(row, col, value) {
     datapoints.setInt16(row*byteOffsets[byteOffsets.length-1]+byteOffsets[col], value, true);
 }
 
+// interpolate the color of each data point using the selected color palette
+var minC = -1;
+var midC = 0;
+var maxC = 1;
+
+function palette2color(x, i) {
+  if (x >= maxC)
+    return colorPalette[mapping.p][colorPalette[mapping.p].length-1][i];
+
+  if (x <= minC)
+    return colorPalette[mapping.p][0][i];
+
+  if (x >= midC) {
+    x -= midC;
+    var hp = (maxC - midC) / (Math.ceil(colorPalette[mapping.p].length / 2) - 1);
+    var a = Math.floor(x / hp);
+    var d = x - a * hp;
+    a += Math.floor(colorPalette[mapping.p].length / 2);
+    return (d * colorPalette[mapping.p][a + 1][i] + (hp - d) * colorPalette[mapping.p][a][i]) / hp;
+  }
+
+  x -= minC;
+  var hn = (midC - minC) / (Math.floor(colorPalette[mapping.p].length / 2));
+  var a = Math.floor(x / hn);
+  var d = x - a * hn;
+  return (d * colorPalette[mapping.p][a + 1][i] + (hn - d) * colorPalette[mapping.p][a][i]) / hn;
+}
+
+// mapping function from data objects to visual objects
 function aggregator(row, col, rangeMin, rangeMax) {
-  // row is visual object id. first we have to convert is to year and id in raster buffer
-  var year = Math.floor(row / (rstWidth * rstHeight)) + 2002;
-  var rstID = row % (rstWidth * rstHeight);
-  var shpID = rstBuffer[4 * rstID] * 256 * 256 + rstBuffer[4 * rstID + 1] * 256 + rstBuffer[4 * rstID + 2];
-  if (shpID == 0xffffff) return NaN; // skip over empty points
-
-  var newRow = id2row[year].get(shpID);
-  if (newRow == null) return NaN;
-
-  if (col == 1) {
-    return mapScaleLat * Math.floor(rstID / rstWidth) / rstHeight;
-//    return metaData.minOfColumn[1] + (metaData.maxOfColumn[1] - metaData.minOfColumn[1]) * Math.floor(rstID / rstWidth) / rstHeight;
-  }
-
-  if (col == 2) {
-    return mapScaleLng * (rstID % rstWidth) / rstWidth;
-//    return metaData.minOfColumn[2] + (metaData.maxOfColumn[2] - metaData.minOfColumn[2]) * (rstID % rstWidth) / rstWidth;
-  }
-
-  // for total number of jobs, return the density of jobs
-  if (col == 3) {
-    return 1000 * readData(newRow, col) / (dbf.records[shpID].ALAND + dbf.records[shpID].AWATER);
-  }
-
-  return; // for now, let's only work on lat, long and total number of jobs
-
   // don't change lat/long
   if (col == 1 || col == 2)
     return readData(row, col);
 
   // experiment with different aggregators
   if (col == 0) {
-    return NaN;
   }
 
-  // for jobs categories, devide number of jobs by total number of jobs
+  // for jobs categories, divide number of jobs by total number of jobs
   if (col >= 4 && col <= 43)
     return (readData(row, 3) == 0) ? rangeMin : (readData(row, col) / readData(row, 3) * (rangeMax - rangeMin) + rangeMin);
 
@@ -95,12 +84,13 @@ function aggregator(row, col, rangeMin, rangeMax) {
   return (readData(row, col) - metaData.minOfColumn[col]) / (metaData.maxOfColumn[col] - metaData.minOfColumn[col]) * (rangeMax - rangeMin) + rangeMin;
 }
 
-function init($container, $stat, rawdata, MetaData) {
-  var shp;
-  SHPParser.load('data/geo/tl_2011_42_tabblock.shp', shpLoad, function() { console.log('error loading shape file'); });
-  DBFParser.load('data/geo/tl_2011_42_tabblock.dbf', dbfLoad, function() { console.log('error loading dbf file'); });
-
+function init($container, $stat, rawdata, MetaData, cPalette) {
   // perfome preprocessing on rawdata
+  colorPalette = cPalette;
+  for (var a = 0; a < colorPalette.length; a++)
+    for (var b = 0; b < colorPalette[a].length; b++)
+      for (var c = 0; c < colorPalette[a][b].length; c++)
+        colorPalette[a][b][c] /= 0xff;
   metaData = MetaData;
   dimensions = metaData.BINcolumns;
   byteSchema = metaData.byteSchema;
@@ -113,109 +103,8 @@ function init($container, $stat, rawdata, MetaData) {
   }
   byteOffsets.push(offset);
 
-  totalParticles = 10 * rstBuffer.length / 4;//metaData.totalRows;
+  totalParticles = metaData.totalRows;
   datapoints = new DataView(rawdata);
-
-  function shpLoad(data) {
-    console.log('shape file loaded');
-    shp = data;
-    if (shp && dbf)
-      main_init($container, $stat, shp);
-  }
-
-  function dbfLoad(data) {
-    console.log('dbf file loaded');
-    dbf = data;
-    if (shp && dbf)
-      main_init($container, $stat, shp);
-  }
-}
-
-function main_init($container, $stat, shp) {
-  // experimental: load LEHD Auxiliary files and do rasterization
-  if (shp.records.length != dbf.numberOfRecords) {
-    console.log('shape file and db file don\'t match');
-    return;
-  }
-  console.log('main init');
-
-  // set hashmaps
-  block2id = new HashMap();
-  for (var i = 0; i < dbf.numberOfRecords; i++) {
-    block2id.set(parseFloat(dbf.records[i].GEOID), i);
-  }
-
-  id2row = [];
-  for (var y = 2002; y <= 2011; y++)
-    id2row[y] = new HashMap();
-
-  for (var i = 0; i < metaData.totalRows; i++) {
-    id2row[readData(i, 55)].set(block2id.get(readData(i, 0)), i);
-  }
-
-  // setup rasterization renderer
-  var rstRenderer = new THREE.WebGLRenderer({antialias: false, sortObjects: false});
-  rstRenderer.setSize(rstWidth/window.devicePixelRatio, rstHeight/window.devicePixelRatio);
-  rstRenderer.setClearColor(0xffffff, 1);
-
-  var rstCamera = new THREE.OrthographicCamera(-rstWidth/2, rstWidth/2, rstHeight/2, -rstHeight/2, -10, 10);
-  rstCamera.position.set(0, 0, 1);
-  rstCamera.lookAt(new THREE.Vector3(0, 0, 0));
-  rstCamera.up = new THREE.Vector3(0, 1, 0);
-
-  var rstScene = new THREE.Scene();
-  rstScene.add(rstCamera);
-
-  // setting parameters for lngToRaster/latToRaster
-  lngMin = lngToPixel(shp.minX);
-  lngMax = lngToPixel(shp.maxX);
-  latMax = latToPixel(shp.minY);
-  latMin = latToPixel(shp.maxY);
-
-  // initialize raster buffer with white pixels (empty points)
-  rstRenderer.render(rstScene, rstCamera);
-  var gl = rstRenderer.getContext();
-  gl.readPixels(0, 0, rstWidth, rstHeight, gl.RGBA, gl.UNSIGNED_BYTE, rstBuffer);
-
-  // read shpae files and fill out raster buffer
-  var RECORDS = shp.records.length;
-  var currShape;
-  for (var i = 0; i < RECORDS; i++) {
-    var points = shp.records[i].shape.content.points;
-    var parts = shp.records[i].shape.content.parts;
-
-    for (var k = 0; k < parts.length; k++) {
-      var newPart = true;
-      currShape = new THREE.Shape();
-
-      for (var j = parts[k], last = parts[k+1] || (points.length)/2; j < last; j++) {
-        var x = lngToRaster(points[j*2]);
-        var y = latToRaster(points[j*2+1]);
-
-        // first point
-        if (newPart) {
-          currShape.moveTo(x, y);
-          newPart = false;
-        } else {
-          currShape.lineTo(x, y);
-        }
-      }
-
-      var rstMesh = new THREE.Mesh(new THREE.ShapeGeometry(currShape), new THREE.MeshBasicMaterial({color: i}));
-      rstScene.add(rstMesh);
-    }
-
-    // empty webgl buffer in order to avoid overloading memory
-    if ((i > 0 && i % chunks == 0) || i == RECORDS-1) {
-      rstRenderer.render(rstScene, rstCamera);
-      var buf = new Uint8Array(rstBuffer.length);
-      gl.readPixels(0, 0, rstWidth, rstHeight, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-      for (var a = 0; a < buf.length; a++)
-        rstBuffer[a] &= buf[a];
-      delete rstScene;
-      rstScene = new THREE.Scene();
-    }
-  }
 
   // convert lat, long to x, y
   var mapWidth = 100;
@@ -242,7 +131,7 @@ function main_init($container, $stat, shp) {
   for (var j = 1; j <= 2; j++) {
     metaData.minOfColumn[j] = Number.MAX_VALUE;
     metaData.maxOfColumn[j] = -Number.MAX_VALUE;
-    for (var i = 0; i < metaData.totalRows/*totalParticles*/; i++) {
+    for (var i = 0; i < totalParticles; i++) {
       dummy = readData(i, j);
       if (j == 1) {
         writeData(i, j, mapScaleLat * (1 - (latToPixel(dummy) - dataLatMin) / (dataLatMax - dataLatMin)));
@@ -266,7 +155,6 @@ function main_init($container, $stat, shp) {
 
   var element = document.createElement('iframe');
   var mapsURL = 'https://maps.google.com/maps?ll=41.0088559,-77.6069819&z=11&output=embed';
-  //  var mapsURL = 'https://maps.google.com/maps?ll=' + latCenter + ',' + lngCenter + '&z=11&output=embed';
   element.src = mapsURL;
   element.style.width = mapResolution * mapWidth + 'px';
   element.style.height = mapResolution * mapHeight + 'px';
@@ -429,23 +317,23 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
 
       // set positions
       var positions = frames.frame[frameIndex].geometry.attributes.position.array;
-      positions[j*3]   = aggregator(i, 2, 0, 10);//(mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
-      positions[j*3+1] = aggregator(i, 1, 0, 10);//(mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
-      positions[j*3+2] = aggregator(i, 3, 0, 10);//(mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
+      positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
+      positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
+      positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
 
       // set colors
-      //if (mapping.c == -1) continue;
-      tempColor = new THREE.Color(0x000000);
-      dummy = positions[j*3+2];//aggregator(i, mapping.c, 0, 1);
-      /*      if (isNaN(dummy)) {
-              positions[j*3] = NaN;
-              continue;
-              }*/
-      tempColor.setHSL((dummy >= 0) ? Math.min(dummy, 1) * .3 + .7 : Math.max(dummy, -1) * .3 + .5, 1., .5);
+      if (mapping.c == -1) continue;
+      //tempColor = new THREE.Color(0x000000);
+      dummy = aggregator(i, mapping.c, 0, 1);
+      if (isNaN(dummy)) {
+        positions[j*3] = NaN;
+        continue;
+      }
+      //tempColor.setHSL((dummy >= 0) ? Math.min(dummy, 1) * .3 + .7 : Math.max(dummy, -1) * .3 + .5, 1., .5);
       var colors = frames.frame[frameIndex].geometry.attributes.color.array;
-      colors[j*3]   = tempColor.r;
-      colors[j*3+1] = tempColor.g;
-      colors[j*3+2] = tempColor.b;
+      colors[j*3]   = palette2color(dummy, 0);//tempColor.r;
+      colors[j*3+1] = palette2color(dummy, 1);//tempColor.g;
+      colors[j*3+2] = palette2color(dummy, 2);//tempColor.b;
     }
 
     for (var f = 0; f < frames.frameno; f++) {

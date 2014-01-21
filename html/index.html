@@ -20,9 +20,15 @@
     <script src="js/dbf.js"></script>
     <script src="js/hashmap.js"></script>
     <script>
-      var shp, dbf; // experimental
-      var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1};
+      var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1, p: 0};
+      var colorPalette = [[[165,0,38],[215,48,39],[244,109,67],[253,174,97],[254,224,144],[255,255,191],[224,243,248],[171,217,233],[116,173,209],[69,117,180],[49,54,149]], [[64,0,75],[118,42,131],[153,112,171],[194,165,207],[231,212,232],[247,247,247],[217,240,211],[166,219,160],[90,174,97],[27,120,55],[0,68,27]]];
       var x, y, z, r;
+
+      var changePalette = function(p) {
+        mapping.p = p;
+        initialDraw(mapping, x, y, z, r);
+      }
+
       var mapDimension = function(dropdownId, dimensionName, dimensionIndex) {
         if (dropdownId == "xDimensionDropdown") { mapping.x = dimensionIndex; }
         else if (dropdownId == "yDimensionDropdown") { mapping.y = dimensionIndex; }
@@ -83,7 +89,7 @@
               jQuery(this).html(newHTML);
             });
 
-            init($('#drawCanvas'), $('#stat'), buf, metaData);
+            init($('#drawCanvas'), $('#stat'), buf, metaData, colorPalette);
             $('#loadAlert').hide();
             $('#dataProgressBar').css('width', '0%');
             $('#overlay').remove();
@@ -97,6 +103,7 @@
 
         $('#loadAlert').hide();
 
+        // load sliders
         $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
 
         var oldX = -100, oldY = -100, oldZ = -100, oldR = -100, oldT = -100;
@@ -162,6 +169,24 @@
 
         getSliderVals();
 
+        // set color palette
+        $('#color-palette').each(function(d) {
+          var newHTML = '';
+          var pW = 130, pH = 20;
+          for (var p = 0; p < colorPalette.length; p++) {
+            var cW = pW / colorPalette[p].length;
+            newHTML += '<div class="radio"> <label> <input type="radio" name="palette-radios" onclick="changePalette(' + p + ');" ';
+            if (p == 0) newHTML += 'checked'
+            newHTML += '> <svg width="' + pW + '" height="' + pH + '">';
+            for (var c = 0; c < colorPalette[p].length; c++) {
+              newHTML += '<rect fill="rgb(' + colorPalette[p][c][0] + ',' + colorPalette[p][c][1] + ',' + colorPalette[p][c][2] + ')" height="' + pH + '" width="' + cW + '" x="' + (cW*c) + '"> </rect>';
+            }
+            newHTML += ' </svg> </label> </div>';
+          }
+          jQuery(this).html(newHTML);
+        });
+
+        // read database metadata
         $.getJSON('data/datasets.json', function(data) {
           $('.data-selector').each(function(d) {
             var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(\'NONE\',-1,-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
@@ -358,6 +383,14 @@
                 <td id="Tindicator"></td>
               </tr>
             </table>
+          </div>
+
+          <div class="panel panel-primary">
+            <div class="panel-heading">
+              <h3 class="panel-title">Colors</h3>
+            </div>
+            <form id="color-palette">
+            </form>
           </div>
 
         </div>
