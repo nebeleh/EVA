@@ -45,14 +45,14 @@
       }
 
       var setPaletteLegend = function() {
-        var lW = 42, lH = 220, tW = 37;
+        var lW = 52, lH = 200, tW = 37;
         var newHTML = '<svg width="' + lW + '" height="' + lH + '"> ';
         var cH = lH / colorPalette[mapping.p].length;
         for (var i = 0; i < colorPalette[mapping.p].length; i++) {
-         newHTML += '<rect fill="rgb(' + (colorPalette[mapping.p][i][0] * 0xff) + ',' + (colorPalette[mapping.p][i][1] * 0xff) + ',' + (colorPalette[mapping.p][i][2] * 0xff) + ')" y="' + (cH * (colorPalette[mapping.p].length - i - 1)) + '" width="' + (lW - tW) + '" height="' + cH + '"></rect>';
-         newHTML += '<text font-size="15px" fill="black" x="' + (lW - tW + 2) + '" y="' + (cH * (colorPalette[mapping.p].length - i - 1) + 15) + '">';
-         var v = (i >= Math.floor(colorPalette[mapping.p].length/2) ? ((i - Math.floor(colorPalette[mapping.p].length/2)) * (parseFloat($('#inputPaletteMax').val()) - parseFloat($('#inputPaletteMid').val())) / Math.ceil(colorPalette[mapping.p].length/2) + parseFloat($('#inputPaletteMid').val()) ) : (i * (parseFloat($('#inputPaletteMid').val()) - parseFloat($('#inputPaletteMin').val())) / Math.floor(colorPalette[mapping.p].length/2) + (parseFloat($('#inputPaletteMin').val())) ));
-         newHTML += (Math.floor(v*100)/100) + '</text>';
+          newHTML += '<rect fill="rgb(' + (colorPalette[mapping.p][i][0] * 0xff) + ',' + (colorPalette[mapping.p][i][1] * 0xff) + ',' + (colorPalette[mapping.p][i][2] * 0xff) + ')" y="' + (cH * (colorPalette[mapping.p].length - i - 1)) + '" width="' + (lW - tW) + '" height="' + cH + '"></rect>';
+          newHTML += '<text font-size="15px" fill="black" x="' + (lW - tW + 2) + '" y="' + (cH * (colorPalette[mapping.p].length - i - 1) + 15) + '">';
+          var v = (i >= Math.floor(colorPalette[mapping.p].length/2) ? ((i - Math.floor(colorPalette[mapping.p].length/2)) * (parseFloat($('#inputPaletteMax').val()) - parseFloat($('#inputPaletteMid').val())) / Math.ceil(colorPalette[mapping.p].length/2) + parseFloat($('#inputPaletteMid').val()) ) : (i * (parseFloat($('#inputPaletteMid').val()) - parseFloat($('#inputPaletteMin').val())) / Math.floor(colorPalette[mapping.p].length/2) + (parseFloat($('#inputPaletteMin').val())) ));
+          newHTML += (Math.floor(v*100)/100) + '</text>';
         }
         newHTML += ' </svg>';
         $('#paletteLegend').html(newHTML);
@@ -117,7 +117,7 @@
               });
               jQuery(this).html(newHTML);
             });
-            
+
             init($('#drawCanvas'), $('#stat'), buf, metaData, colorPalette);
             $('#loadAlert').hide();
             $('#dataProgressBar').css('width', '0%');
@@ -212,18 +212,17 @@
         var pW = 200, pH = 20;
         for (var p = 0; p < colorPalette.length; p++) {
           var cW = pW / colorPalette[p].length;
-          newHTML += '<div class="radio"> <label> <input type="radio" name="palette-radios" onclick="changePalette(' + p + ');" ';
-              if (p == 0) newHTML += 'checked';
-              newHTML += '> <svg width="' + pW + '" height="' + pH + '">';
-              for (var c = 0; c < colorPalette[p].length; c++) {
-                newHTML += '<rect fill="rgb(' + colorPalette[p][c][0] + ',' + colorPalette[p][c][1] + ',' + colorPalette[p][c][2] + ')" height="' + pH + '" width="' + cW + '" x="' + (cW*c) + '"> </rect>';
-                colorPalette[p][c][0] /= 0xff;
-                colorPalette[p][c][1] /= 0xff;
-                colorPalette[p][c][2] /= 0xff;
-              }
-              newHTML += ' </svg> </label> </div>';
+          newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="changePalette(' + p + ');">';
+            newHTML += '<svg width="' + pW + '" height="' + pH + '">';
+            for (var c = 0; c < colorPalette[p].length; c++) {
+              newHTML += '<rect fill="rgb(' + colorPalette[p][c][0] + ',' + colorPalette[p][c][1] + ',' + colorPalette[p][c][2] + ')" height="' + pH + '" width="' + cW + '" x="' + (cW*c) + '"> </rect>';
+              colorPalette[p][c][0] /= 0xff;
+              colorPalette[p][c][1] /= 0xff;
+              colorPalette[p][c][2] /= 0xff;
+            }
+            newHTML += '</svg></a></li>';
         }
-        $('#color-palette').html(newHTML);
+        $('#paletteDropdownItems').html(newHTML);
         setPaletteLegend();
 
         // read database metadata
@@ -281,6 +280,7 @@
           </ul>
         </div>
       </div>
+
       <div id="params3">
         <div class="panel panel-info">
           <div class="panel-heading">
@@ -384,158 +384,175 @@
               <td>
                 <input type="text" class="span2" value="" data-slider-min="5" data-slider-max="100" data-slider-step="1" data-slider-value="100" id="rSlider" data-slider-id="RS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
               </td>
-              <tr>
-                <td data-toggle="tooltip" title="Scale in X">X</td>
-                <td data-toggle="tooltip" title="Scale in Y">Y</td>
-                <td data-toggle="tooltop" title="Scale in Z">Z</td>
-                <td data-toggle="tooltip" title="Sphere Radius">R</td>
-              </tr>
-            </table>
-          </div>
-
-          <div class="panel panel-info">
-            <div class="panel-heading">
-              <h3 class="panel-title">Information</h3>
-            </div>
-            <table class="table table-striped">
-              <tr>
-                <td><b>X Scale</b></td>
-                <td id="Xindicator"></td>
-              </tr>
-              <tr>
-                <td><b>Y Scale</b></td>
-                <td id="Yindicator"></td>
-              </tr>
-              <tr>
-                <td><b>Z Scale</b></td>
-                <td id="Zindicator"></td>
-              </tr>
-              <tr>
-                <td><b>Radius</b></td>
-                <td id="Rindicator"></td>
-              </tr>
-              <tr>
-                <td><b>Events</b></td>
-                <td id="eventsindicator"></td>
-              </tr>
-              <tr>
-                <td><b>T Range</b></td>
-                <td id="Tindicator"></td>
-              </tr>
-            </table>
-          </div>
-
-          <div class="panel panel-primary">
-            <div class="panel-heading">
-              <h3 class="panel-title">Settings</h3>
-            </div>
-            <form>
-              <div class="checkbox">
-                <label>
-                  <input type="checkbox" onclick="setGeoLayer(this.checked);">
-                  Geo Layer
-                </label>
-              </div>
-              <div class="checkbox">
-                <label>
-                  <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>
-                  Axis Helper
-                </label>
-              </div>
-              <div class="checkbox">
-                <label>
-                  <input type="checkbox" onclick="setGridXY(this.checked);">
-                  Grid XY Helper
-                </label>
-              </div>
-              <div class="checkbox">
-                <label>
-                  <input type="checkbox" onclick="setGridXZ(this.checked);">
-                  Grid XZ Helper
-                </label>
-              </div>
-              <div class="checkbox">
-                <label>
-                  <input type="checkbox" onclick="setGridYZ(this.checked);">
-                  Grid YZ Helper
-                </label>
-              </div>
-            </form>
-          </div>
-
+            </tr>
+            <tr>
+              <td data-toggle="tooltip" title="Scale in X">X</td>
+              <td data-toggle="tooltip" title="Scale in Y">Y</td>
+              <td data-toggle="tooltop" title="Scale in Z">Z</td>
+              <td data-toggle="tooltip" title="Sphere Radius">R</td>
+            </tr>
+          </table>
         </div>
 
-        <div id="params2">
-          <div class="panel panel-primary">
-            <div class="panel-heading">
-              <h3 class="panel-title">Colors</h3>
-            </div>
-            <table class="table table-borderless">
-              <tr>
-                <td>
-                  <div class="input-group">
-                    <span class="input-group-addon">Max:</span>
-                    <input type="number" class="form-control" id="inputPaletteMax" value="1" step="0.1">
-                  </div>
-                </td>
-                <td colspan="1" rowspan="4" id="paletteLegend"></td>
-              </tr>
-              <tr>
-                <td>
-                  <div class="input-group">
-                    <span class="input-group-addon">Mid:</span>
-                    <input type="number" class="form-control" id="inputPaletteMid" value="0" step="0.1">
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <div class="input-group">
-                    <span class="input-group-addon">Min:</span>
-                    <input type="number" class="form-control" id="inputPaletteMin" value="-1" step="0.1">
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <button type="button" class="btn btn-default btn-block" onclick="setPaletteRanges();">Set</button>
-                </td>
-              </tr>
-            </table>
-            <form id="color-palette">
-            </form>
+        <div class="panel panel-info">
+          <div class="panel-heading">
+            <h3 class="panel-title">Information</h3>
           </div>
-
-          <div class="panel panel-info">
-            <div class="panel-heading">
-              <h3 class="panel-title">Camera Type</h3>
-            </div>
-            <form>
-              <div class="radio">
-                <label>
-                  <input type="radio" name="cameraRadios" id="perspectiveRadio" onclick="setCameraType('perspective');" checked>Perspective
-                </label>
-              </div>
-
-              <div class="radio">
-                <label>
-                  <input type="radio" name="cameraRadios" id="orthographicRadio" onclick="setCameraType('orthographic');">Orthographic
-                </label>
-              </div>
-            </form>
-          </div>
-
-          <div class="panel panel-primary">
-            <div class="panel-heading">
-              <h3 class="panel-title">Camera Orientation</h3>
-            </div>
-            <p><button type="button" class="btn btn-danger btn-block" onclick="setCameraX();">Look from X</button></p>
-            <p><button type="button" class="btn btn-success btn-block" onclick="setCameraY();">Look from Y</button></p>
-            <p><button type="button" class="btn btn-primary btn-block" onclick="setCameraZ();">Look from Z</button></p>
-          </div>
-
+          <table class="table table-striped">
+            <tr>
+              <td><b>X Scale</b></td>
+              <td id="Xindicator"></td>
+            </tr>
+            <tr>
+              <td><b>Y Scale</b></td>
+              <td id="Yindicator"></td>
+            </tr>
+            <tr>
+              <td><b>Z Scale</b></td>
+              <td id="Zindicator"></td>
+            </tr>
+            <tr>
+              <td><b>Radius</b></td>
+              <td id="Rindicator"></td>
+            </tr>
+            <tr>
+              <td><b>Events</b></td>
+              <td id="eventsindicator"></td>
+            </tr>
+            <tr>
+              <td><b>T Range</b></td>
+              <td id="Tindicator"></td>
+            </tr>
+          </table>
         </div>
+
       </div>
 
-    </body>
-  </html>
+      <div id="params2">
+        <div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">Colors</h3>
+          </div>
+          <table class="table tablenoborder">
+            <tr>
+              <td>
+                <div class="input-group">
+                  <b>Max: </b>
+                  <input style="width:70px" type="number" class="form-control" id="inputPaletteMax" value="1" step="0.1">
+                </div>
+              </td>
+              <td colspan="1" rowspan="3" id="paletteLegend"></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="input-group">
+                  <b>Mid: </b>
+                  <input style="width:70px" type="number" class="form-control" id="inputPaletteMid" value="0" step="0.1">
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="input-group">
+                  <b>Min: </b>
+                  <input style="width:70px" type="number" class="form-control" id="inputPaletteMin" value="-1" step="0.1">
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <button type="button" class="btn btn-primary btn-block" onclick="setPaletteRanges();">Set</button>
+              </td>
+              <td>
+                <ul class="nav nav-pills">
+                  <li class="dropdown">
+                  <button type="button" class="btn btn-primary btnblock" data-toggle="dropdown" id="paletteDropdown">Palette <span class="caret"></span></button>
+                  <ul class="dropdown-menu" role="menu" aria-labelledby="paletteDropdown" id="paletteDropdownItems">
+                  </ul>
+                  </li>
+                </ul>
+              </td>
+            </tr>
+          </table>
+
+        </div>
+
+        <div class="panel panel-info">
+          <div class="panel-heading">
+            <h3 class="panel-title">Camera</h3>
+          </div>
+
+          <table class="table tablenoborder">
+            <tr>
+              <td style="width: 33% !important">
+                <button type="button" class="btn btn-info btnblock" disabled>Type</button>
+              </td>
+              <td colspan="2" rowspan="1" id="cameraPerspectiveHeader">
+                <ul class="nav nav-pills">
+                  <li class="dropdown">
+                  <a style="width: 50% !important" id="cameraDropdown" role="button" data-toggle="dropdown" href="#">Perspective<span class="caret"></span></a>
+                  <ul id="cameraDropdownItems" class="dropdown-menu" role="menu" aria-labelledby="cameraDropdown">
+                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="$('#cameraDropdown').html('Perspective<span class=\'caret\'></span>');setCameraType('perspective');">Perspective</a></li>
+                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="$('#cameraDropdown').html('Ortho<span class=\'caret\'></span>');setCameraType('orthographic');">Orthographic</a></li>
+                  </ul>
+                  </li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <button type="button" class="btn btn-danger btn-block" onclick="setCameraX();"><span class="glyphicon glyphicon-eye-open"></span> X</button>
+              </td>
+              <td>
+                <button type="button" class="btn btn-success btn-block" onclick="setCameraY();"><span class="glyphicon glyphicon-eye-open"></span> Y</button>
+              </td>
+              <td>
+                <button type="button" class="btn btn-primary btn-block" onclick="setCameraZ();"><span class="glyphicon glyphicon-eye-open"></span> Z</button>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">Settings</h3>
+          </div>
+          <form>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setGeoLayer(this.checked);">
+                Geo Layer
+              </label>
+            </div>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>
+                Axis Helper
+              </label>
+            </div>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setGridXY(this.checked);">
+                Grid XY Helper
+              </label>
+            </div>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setGridXZ(this.checked);">
+                Grid XZ Helper
+              </label>
+            </div>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" onclick="setGridYZ(this.checked);">
+                Grid YZ Helper
+              </label>
+            </div>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+  </body>
+</html>

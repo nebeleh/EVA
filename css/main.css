@@ -15,12 +15,14 @@ body {
   top: 150px;
   right: 20px;
   z-index: 100;
+  width: 220px;
 }
 #params2 {
   position: absolute;
   top: 150px;
   left: 20px;
   z-index: 99;
+  width: 220px;
 }
 #params3 {
   top: 10px;
@@ -92,7 +94,21 @@ body {
   overflow-y: auto;
   overflow-x: auto;
 }
-.table.table-borderless td,
-.table.table-borderless th {
-  border: 0 !important;
+#paletteDropdownItems {
+  height: 300px;
+  width: 240px;
+  overflow-x: auto;
+}
+#cameraDropdownItems {
+  height: 70px;
+  width: 50px;
+}
+#params2 .table td {
+  text-align: left !important;
+}
+#params2 .table {
+  table-layout: fixed !important;
+} 
+.table {
+  margin-bottom: 5px !important;
 }
