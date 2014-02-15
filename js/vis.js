@@ -158,6 +158,7 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   if (metaData.dataClass == "tweets") {
     var m = metaData.minOfColumn[0];
     metaData.maxOfColumn[0] = -Number.MAX_VALUE;
+    metaData.minOfColumn[0] = 0;
     for (var i = 0; i < totalParticles; i++) {
       // scaling time dimension for tweeter data
       dummy = readData(i, 0);
@@ -287,7 +288,11 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
   if (mapping.t == -1 || metaData.maxOfColumn[mapping.t] == metaData.minOfColumn[mapping.t]) {
     frames.frameno = 1;
   } else {
-    frames.frameno = 10; // TODO: receive number of buckets from user
+    if (metaData.dataClass == 'tweets') {
+      frames.frameno = 100;
+    } else {
+      frames.frameno = 10; // TODO: receive number of buckets from user
+    }
   }
 
   setTimeController(true);
