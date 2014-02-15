@@ -1,6 +1,7 @@
 {
   "datasets": [
   {"path": "/data/lehd/", "filename": "pa_rac_all.json", "dataname": "LEHD, Residence Area Characteristics, PA"},
-  {"path": "/data/lehd/", "filename": "pa_wac_all.json", "dataname": "LEHD, Workplace Area Characteristics, PA"}
+  {"path": "/data/lehd/", "filename": "pa_wac_all.json", "dataname": "LEHD, Workplace Area Characteristics, PA"},
+  {"path": "/data/twitter/", "filename": "tweets.json", "dataname": "Twitter Sentiment Analysis"}
   ]
 }

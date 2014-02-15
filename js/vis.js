@@ -64,13 +64,16 @@ function palette2color(x, i) {
 
 // mapping function from data objects to visual objects
 function aggregator(row, col, rangeMin, rangeMax) {
+  // mapping function for tweeter set
+  if (metaData.dataClass == "tweets") {
+    return readData(row, col);
+  }
+
+  // mapping function for LEHD set
+
   // don't change lat/long
   if (col == 1 || col == 2)
     return readData(row, col);
-
-  // experiment with different aggregators
-  if (col == 0) {
-  }
 
   // for jobs categories, divide number of jobs by total number of jobs
   if (col >= 4 && col <= 43)
@@ -103,26 +106,39 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   datapoints = new DataView(rawdata);
 
   // convert lat, long to x, y
-  var mapWidth = 100;
-  var mapHeight = 60;
-  var mapResolution = 85;
-  var latCenter = (metaData.minOfColumn[1] + metaData.maxOfColumn[1]) / 2.;
-  var lngCenter = (metaData.minOfColumn[2] + metaData.maxOfColumn[2]) / 2.;
+  var mapWidth, mapHeight;
+  var zoomLevel, mapResolution;
+  if (metaData.dataClass == 'tweets') {
+    zoomLevel = 12;
+    mapResolution = 0.01358 * (1 << zoomLevel);
+  } else {
+    zoomLevel = 11;
+    mapResolution = 0.0414 * (1 << zoomLevel);
+  }
+  var latCenter, lngCenter;
   var dataLatMax = latToPixel(metaData.minOfColumn[1]),
       dataLatMin = latToPixel(metaData.maxOfColumn[1]),
       dataLngMax = lngToPixel(metaData.maxOfColumn[2]),
       dataLngMin = lngToPixel(metaData.minOfColumn[2]);
-  if (mapHeight / (dataLatMax - dataLatMin) < mapWidth / (dataLngMax - dataLngMin)) {
-    mapScaleLat = mapHeight;
-    mapScaleLng = (dataLngMax - dataLngMin) / (dataLatMax - dataLngMin) * mapHeight;
+  var c = (dataLatMax - dataLatMin) / (dataLngMax - dataLngMin);
+  if ((dataLatMax - dataLatMin) < (dataLngMax - dataLngMin)) {
+    mapWidth = 100;
+    mapHeight = 100 * c;
   } else {
-    mapScaleLng = mapWidth;
-    mapScaleLat = (dataLatMax - dataLatMin) / (dataLngMax - dataLngMin) * mapWidth;
+    mapHeight = 100;
+    mapWidth = 100 / c;
+  }
+  lngCenter = (metaData.minOfColumn[2] + metaData.maxOfColumn[2]) / 2;
+  latCenter = (metaData.maxOfColumn[1] + metaData.minOfColumn[1]) / 2;
+
+  if (metaData.dataClass == 'tweets') {
+    latCenter += 0.004;
+  } else {
+    latCenter += 0.012;
   }
 
-  // TODO: make it better
-  mapScaleLng /= normalizingScale;
-  mapScaleLat /= normalizingScale;
+  mapScaleLng = mapWidth / normalizingScale;
+  mapScaleLat = mapHeight / normalizingScale;
 
   for (var j = 1; j <= 2; j++) {
     metaData.minOfColumn[j] = Number.MAX_VALUE;
@@ -139,6 +155,17 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
     }
   }
 
+  if (metaData.dataClass == "tweets") {
+    var m = metaData.minOfColumn[0];
+    metaData.maxOfColumn[0] = -Number.MAX_VALUE;
+    for (var i = 0; i < totalParticles; i++) {
+      // scaling time dimension for tweeter data
+      dummy = readData(i, 0);
+      writeData(i, 0, (dummy - m)/1000000);
+      metaData.maxOfColumn[0] = Math.max(metaData.maxOfColumn[0], readData(i, 0));
+    }
+  }
+
   // adding Google Maps iframe layer to visualization
   var planeMaterial = new THREE.MeshBasicMaterial();
   planeMaterial.color.set('black');
@@ -148,9 +175,10 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
   planeMesh.translateX(mapWidth/2);
   planeMesh.translateY(mapHeight/2);
-
+  
   var element = document.createElement('iframe');
-  var mapsURL = 'https://maps.google.com/maps?ll=41.0088559,-77.6069819&z=11&output=embed';
+  //var mapsURL = 'https://maps.google.com/maps?ll=41.0088559,-77.6069819&z=11&output=embed';
+  var mapsURL = 'https://maps.google.com/maps?ll=' + latCenter + ',' + lngCenter + '&z=' + zoomLevel + '&output=embed';
   element.src = mapsURL;
   element.style.width = mapResolution * mapWidth + 'px';
   element.style.height = mapResolution * mapHeight + 'px';
@@ -162,8 +190,8 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   cssObject.scale.multiplyScalar(1/mapResolution);
 
   // TODO: make it automatic
-  cssObject.translateY(-1.05);
-  cssObject.translateX(-0.11);
+  //cssObject.translateY(-1.05);
+  //cssObject.translateX(-0.11);
 
   sceneCSS = new THREE.Scene();
 

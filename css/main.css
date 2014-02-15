@@ -96,8 +96,7 @@ body {
 }
 #paletteDropdownItems {
   height: 300px;
-  width: 240px;
-  overflow-x: auto;
+  width: 260px;
 }
 #cameraDropdownItems {
   height: 70px;
