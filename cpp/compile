@@ -1,3 +1,0 @@
-!#/bin/sh
-
-emcc src/hello.cpp -O2 -s ASM_JS=1 -o js/hello.html
