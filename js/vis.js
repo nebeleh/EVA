@@ -64,21 +64,29 @@ function palette2color(x, i) {
 
 // mapping function from data objects to visual objects
 function aggregator(row, col, rangeMin, rangeMax) {
+  // mapping function for ratings set
+  if (metaData.dataClass == "ratings") {
+
+  }
+
+
   // mapping function for tweeter set
   if (metaData.dataClass == "tweets") {
     return readData(row, col);
   }
 
   // mapping function for LEHD set
+  if (metaData.dataClass == "rac" || metaData.dataClass == "wac") {
+    // don't change lat/long
+    if (col == 1 || col == 2)
+      return readData(row, col);
 
-  // don't change lat/long
-  if (col == 1 || col == 2)
-    return readData(row, col);
+    // for jobs categories, divide number of jobs by total number of jobs
+    if (col >= 4 && col <= 43)
+      return (readData(row, 3) == 0) ? rangeMin : (readData(row, col) / readData(row, 3) * (rangeMax - rangeMin) + rangeMin);
+  }
 
-  // for jobs categories, divide number of jobs by total number of jobs
-  if (col >= 4 && col <= 43)
-    return (readData(row, 3) == 0) ? rangeMin : (readData(row, col) / readData(row, 3) * (rangeMax - rangeMin) + rangeMin);
-
+  // general mapping functions
   // if max and min are equal, return minimum desired range
   if (metaData.minOfColumn[col] == metaData.maxOfColumn[col])
     return rangeMin;
@@ -140,18 +148,20 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   mapScaleLng = mapWidth / normalizingScale;
   mapScaleLat = mapHeight / normalizingScale;
 
-  for (var j = 1; j <= 2; j++) {
-    metaData.minOfColumn[j] = Number.MAX_VALUE;
-    metaData.maxOfColumn[j] = -Number.MAX_VALUE;
-    for (var i = 0; i < totalParticles; i++) {
-      dummy = readData(i, j);
-      if (j == 1) {
-        writeData(i, j, mapScaleLat * (1 - (latToPixel(dummy) - dataLatMin) / (dataLatMax - dataLatMin)));
-      } else if (j == 2) {
-        writeData(i, j, mapScaleLng * (lngToPixel(dummy) - dataLngMin) / (dataLngMax - dataLngMin));
+  if (metaData.dataClass == "tweets" || metaData.dataClass == "wac" || metaData.dataClass == "rac") {
+    for (var j = 1; j <= 2; j++) {
+      metaData.minOfColumn[j] = Number.MAX_VALUE;
+      metaData.maxOfColumn[j] = -Number.MAX_VALUE;
+      for (var i = 0; i < totalParticles; i++) {
+        dummy = readData(i, j);
+        if (j == 1) {
+          writeData(i, j, mapScaleLat * (1 - (latToPixel(dummy) - dataLatMin) / (dataLatMax - dataLatMin)));
+        } else if (j == 2) {
+          writeData(i, j, mapScaleLng * (lngToPixel(dummy) - dataLngMin) / (dataLngMax - dataLngMin));
+        }
+        metaData.minOfColumn[j] = Math.min(metaData.minOfColumn[j], readData(i, j));
+        metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], readData(i, j));
       }
-      metaData.minOfColumn[j] = Math.min(metaData.minOfColumn[j], readData(i, j));
-      metaData.maxOfColumn[j] = Math.max(metaData.maxOfColumn[j], readData(i, j));
     }
   }
 
@@ -167,6 +177,12 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
     }
   }
 
+  // giving the same scale to rating and shoping dates
+  if (metaData.dataClass == "ratings") {
+    metaData.maxOfColumn[4] = metaData.maxOfColumn[5] = Math.max(metaData.maxOfColumn[4], metaData.maxOfColumn[5]);
+    metaData.minOfColumn[4] = metaData.minOfColumn[5] = Math.min(metaData.minOfColumn[4], metaData.minOfColumn[5]);
+  }
+
   // adding Google Maps iframe layer to visualization
   var planeMaterial = new THREE.MeshBasicMaterial();
   planeMaterial.color.set('black');
@@ -176,7 +192,7 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
   planeMesh.translateX(mapWidth/2);
   planeMesh.translateY(mapHeight/2);
-  
+
   var element = document.createElement('iframe');
   //var mapsURL = 'https://maps.google.com/maps?ll=41.0088559,-77.6069819&z=11&output=embed';
   var mapsURL = 'https://maps.google.com/maps?ll=' + latCenter + ',' + lngCenter + '&z=' + zoomLevel + '&output=embed';
@@ -315,11 +331,12 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       timeframeSize = (metaData.maxOfColumn[mapping.t] - metaData.minOfColumn[mapping.t]) / frames.frameno;
       for (var p = 0; p < totalParticles; p++) {
         frameIndex = Math.floor((readData(p, mapping.t) - metaData.minOfColumn[mapping.t]) / timeframeSize);
+        if (isNaN(frameIndex)) continue;
         if (frameIndex == frames.frameno) frameIndex--;
         frames.frame[frameIndex].particles++;
       }
     }
-
+    
     // finding x, y, z and color values for particles in each frame
     for (var f = 0; f < frames.frameno; f++) {
       frames.frame[f].geometry = new THREE.BufferGeometry();
@@ -336,6 +353,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       if (frames.frameno > 1) {
         dummy = readData(i, mapping.t);
         frameIndex = Math.floor((dummy - metaData.minOfColumn[mapping.t]) / timeframeSize);
+        if (isNaN(frameIndex)) continue;
         if (frameIndex == frames.frameno) frameIndex--;
         frames.frame[frameIndex].minValue = Math.min(frames.frame[frameIndex].minValue, dummy);
         frames.frame[frameIndex].maxValue = Math.max(frames.frame[frameIndex].maxValue, dummy);
