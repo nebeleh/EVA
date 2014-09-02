@@ -64,6 +64,13 @@ function palette2color(x, i) {
 
 // mapping function from data objects to visual objects
 function aggregator(row, col, rangeMin, rangeMax) {
+  // mapping function for forex set
+  if (metaData.dataClass == "forex") {
+    if (col == 0)
+      return readData(row, col);
+    
+  }
+
   // mapping function for ratings set
   if (metaData.dataClass == "ratings") {
 
@@ -304,7 +311,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
   if (mapping.t == -1 || metaData.maxOfColumn[mapping.t] == metaData.minOfColumn[mapping.t]) {
     frames.frameno = 1;
   } else {
-    if (metaData.dataClass == 'tweets') {
+    if (metaData.dataClass == 'tweets' || metaData.dataClass == 'forex') {
       frames.frameno = 100;
     } else {
       frames.frameno = 10; // TODO: receive number of buckets from user
