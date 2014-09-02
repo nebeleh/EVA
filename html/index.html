@@ -397,7 +397,7 @@
                 <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="ySlider" data-slider-id="YS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
               </td>
               <td>
-                <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="901" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+                <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
               </td>
               <td>
                 <input type="text" class="span2" value="" data-slider-min="5" data-slider-max="100" data-slider-step="1" data-slider-value="100" id="rSlider" data-slider-id="RS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
@@ -538,31 +538,31 @@
           <form>
             <div class="checkbox">
               <label>
-                <input type="checkbox" onclick="setGeoLayer(this.checked);">
+                <input type="checkbox" id="checkboxGeoLayer" onclick="setGeoLayer(this.checked);">
                 Geo Layer
               </label>
             </div>
             <div class="checkbox">
               <label>
-                <input type="checkbox" onclick="setAxisHelper(this.checked);" checked>
+                <input type="checkbox" id="checkboxAxisHelper" onclick="setAxisHelper(this.checked);" checked>
                 Axis Helper
               </label>
             </div>
             <div class="checkbox">
               <label>
-                <input type="checkbox" onclick="setGridXY(this.checked);">
+                <input type="checkbox" id="checkboxGridXY" onclick="setGridXY(this.checked);">
                 Grid XY Helper
               </label>
             </div>
             <div class="checkbox">
               <label>
-                <input type="checkbox" onclick="setGridXZ(this.checked);">
+                <input type="checkbox" id="checkboxGridXZ" onclick="setGridXZ(this.checked);">
                 Grid XZ Helper
               </label>
             </div>
             <div class="checkbox">
               <label>
-                <input type="checkbox" onclick="setGridYZ(this.checked);">
+                <input type="checkbox" id="checkboxGridYZ" onclick="setGridYZ(this.checked);">
                 Grid YZ Helper
               </label>
             </div>

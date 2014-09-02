@@ -289,6 +289,10 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
 
   // add axisHelper
   setAxisHelper(true);
+  setGridXY(false);
+  setGridXZ(false);
+  setGridYZ(false);
+  setGeoLayer(false);
 
   // start animating
   updateInfo();
@@ -515,7 +519,7 @@ function update()
 function setCameraType(type)
 {
   var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
-  var x = -10, y = -10, z = 10;
+  var x = -100, y = -100, z = 100;
 
   if (type === "perspective")
   {
@@ -577,7 +581,7 @@ function setTimeController(initialCall) {
 
 function setCameraZ()
 {
-  var z = 10;
+  var z = 100;
   if (camera)
     z = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
   setCameraType(cameraType);
@@ -588,7 +592,7 @@ function setCameraZ()
 
 function setCameraY()
 {
-  var y = 10;
+  var y = 100;
   if (camera)
     y = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
   setCameraType(cameraType);
@@ -599,7 +603,7 @@ function setCameraY()
 
 function setCameraX()
 {
-  var x = 10;
+  var x = 100;
   if (camera)
     x = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
   setCameraType(cameraType);
@@ -611,9 +615,11 @@ function setCameraX()
 function setAxisHelper(s)
 {
   if(s) {
+    $("#checkboxAxisHelper").prop("checked", true);
     axisHelper = new THREE.AxisHelper();
     scene.add(axisHelper);
   } else {
+    $("#checkboxAxisHelper").prop("checked", false);
     scene.remove(axisHelper);
   }
 }
@@ -623,12 +629,14 @@ var gridXY, gridXZ, gridYZ;
 function setGridXY(s)
 {
   if(s) {
-    gridXY = new THREE.GridHelper(10, 1);
+    $("#checkboxGridXY").prop("checked", true);
+    gridXY = new THREE.GridHelper(100, 10);
     gridXY.position.set(0, 0, 0);
     gridXY.rotation.x = Math.PI/2;
     gridXY.setColors( new THREE.Color(0xaaaa00), new THREE.Color(0xaaaa00) );
     scene.add(gridXY);
   } else {
+    $("#checkboxGridXY").prop("checked", false);
     scene.remove(gridXY);
   }
 }
@@ -636,11 +644,13 @@ function setGridXY(s)
 function setGridXZ(s)
 {
   if(s) {
-    gridXZ = new THREE.GridHelper(10, 1);
+    $("#checkboxGridXZ").prop("checked", true);
+    gridXZ = new THREE.GridHelper(100, 10);
     gridXZ.setColors( new THREE.Color(0xaa00aa), new THREE.Color(0xaa00aa) );
     gridXZ.position.set(0, 0, 0);
     scene.add(gridXZ);
   } else {
+    $("#checkboxGridXZ").prop("checked", false);
     scene.remove(gridXZ);
   }
 }
@@ -648,21 +658,25 @@ function setGridXZ(s)
 function setGridYZ(s)
 {
   if(s) {
-    gridYZ = new THREE.GridHelper(10, 1);
+    $("#checkboxGridYZ").prop("checked", true);
+    gridYZ = new THREE.GridHelper(100, 10);
     gridYZ.position.set(0, 0, 0);
     gridYZ.rotation.z = Math.PI/2;
     gridYZ.setColors( new THREE.Color(0x00aaaa), new THREE.Color(0x00aaaa) );
     scene.add(gridYZ);
   } else {
+    $("#checkboxGridYZ").prop("checked", false);
     scene.remove(gridYZ);
   }
 }
 
 function setGeoLayer(s) {
   if (s) {
+    $("#checkboxGeoLayer").prop("checked", true);
     sceneCSS.add(cssObject);
     scene.add(planeMesh);
   } else {
+    $("#checkboxGeoLayer").prop("checked", false);
     sceneCSS.remove(cssObject);
     scene.remove(planeMesh);
   }
