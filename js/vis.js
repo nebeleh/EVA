@@ -1,4 +1,4 @@
-var renderer, camera, scene, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
+var renderer, camera, cameraType, scene, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
 var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame = 0, colorPalette;
 var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
@@ -254,6 +254,7 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   scene = new THREE.Scene();
 
   // camera
+  cameraType = "perspective";
   setCameraType("perspective");
   scene.add(camera);
 
@@ -516,20 +517,15 @@ function setCameraType(type)
   var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
   var x = -10, y = -10, z = 10;
 
-  if (camera)
-  {
-    x = camera.position.x;
-    y = camera.position.y;
-    z = camera.position.z;
-  }
-
   if (type === "perspective")
   {
     camera = new THREE.PerspectiveCamera(VIEW_ANGLE, WIDTH/HEIGHT, NEAR, FAR);
+    cameraType = "perspective";
   }
   else
   {
     camera = new THREE.OrthographicCamera(-WIDTH/ORTHOSCALE, WIDTH/ORTHOSCALE, HEIGHT/ORTHOSCALE, -HEIGHT/ORTHOSCALE, ORTHONEAR, ORTHOFAR);
+    cameraType = "orthographic";
   }
 
   camera.position.set(x, y, z);
@@ -581,21 +577,33 @@ function setTimeController(initialCall) {
 
 function setCameraZ()
 {
-  camera.position.set(0, 0, 10);
+  var z = 10;
+  if (camera)
+    z = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
+  setCameraType(cameraType);
+  camera.position.set(0, 0, z);
   camera.up = new THREE.Vector3(0, 1, 0);
   camera.lookAt(scene.position);
 }
 
 function setCameraY()
 {
-  camera.position.set(0, 10, 0);
+  var y = 10;
+  if (camera)
+    y = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
+  setCameraType(cameraType);
+  camera.position.set(0, y, 0);
   camera.up = new THREE.Vector3(0, 0, 1);
   camera.lookAt(scene.position);
 }
 
 function setCameraX()
 {
-  camera.position.set(10, 0, 0);
+  var x = 10;
+  if (camera)
+    x = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
+  setCameraType(cameraType);
+  camera.position.set(x, 0, 0);
   camera.up = new THREE.Vector3(0, 0, 1);
   camera.lookAt(scene.position);
 }
