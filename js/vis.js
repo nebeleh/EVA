@@ -66,9 +66,8 @@ function palette2color(x, i) {
 function aggregator(row, col, rangeMin, rangeMax) {
   // mapping function for forex set
   if (metaData.dataClass == "forex") {
-    if (col == 0)
-      return readData(row, col);
-    
+    if (col > 0)
+      return (readData(row, col) - (metaData.maxOfColumn[col] + metaData.minOfColumn[col]) / 2) * 500;
   }
 
   // mapping function for ratings set
