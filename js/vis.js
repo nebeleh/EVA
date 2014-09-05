@@ -68,6 +68,7 @@ function aggregator(row, col, rangeMin, rangeMax) {
   if (metaData.dataClass == "forex") {
     if (col > 0)
       return (readData(row, col) - (metaData.maxOfColumn[col] + metaData.minOfColumn[col]) / 2) * 500;
+    return (readData(row, col) - metaData.minOfColumn[col]) / (metaData.maxOfColumn[col] - metaData.minOfColumn[col]) * 20 - 10;
   }
 
   // mapping function for ratings set
