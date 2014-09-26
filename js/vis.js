@@ -1,5 +1,5 @@
 var renderer, camera, cameraType, scene, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
-var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 1000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
+var VIEW_ANGLE = 50, NEAR = 1, FAR = 100000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame = 0, colorPalette;
 var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
 var X, Y, Z, R;
@@ -126,8 +126,8 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   if (metaData.dataClass == 'tweets') {
     zoomLevel = 12;
     mapResolution = 0.01358 * (1 << zoomLevel);
-  } else {
-    zoomLevel = 11;
+  } else if (metaData.dataClass == "wac" || metaData.dataClass == "rac")  {
+    zoomLevel = 9;
     mapResolution = 0.0414 * (1 << zoomLevel);
   }
   var latCenter, lngCenter;
@@ -190,35 +190,37 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
     metaData.minOfColumn[4] = metaData.minOfColumn[5] = Math.min(metaData.minOfColumn[4], metaData.minOfColumn[5]);
   }
 
-  // adding Google Maps iframe layer to visualization
-  var planeMaterial = new THREE.MeshBasicMaterial();
-  planeMaterial.color.set('black');
-  planeMaterial.opacity = 0;
-  planeMaterial.side = THREE.DoubleSide;
-  planeMaterial.blending = THREE.NoBlending;
-  planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
-  planeMesh.translateX(mapWidth/2);
-  planeMesh.translateY(mapHeight/2);
 
+  // adding Google Maps iframe layer to visualization
   var element = document.createElement('iframe');
-  //var mapsURL = 'https://maps.google.com/maps?ll=41.0088559,-77.6069819&z=11&output=embed';
-  var mapsURL = 'https://maps.google.com/maps?ll=' + latCenter + ',' + lngCenter + '&z=' + zoomLevel + '&output=embed';
-  element.src = mapsURL;
+  element.src = 'https://maps.google.com/maps?ll=' + latCenter + ',' + lngCenter + '&z=' + zoomLevel + '&output=embed';  
   element.style.width = mapResolution * mapWidth + 'px';
   element.style.height = mapResolution * mapHeight + 'px';
 
   cssObject = new THREE.CSS3DObject(element);
-  cssObject.position = planeMesh.position;
-  cssObject.position.z -= 0.01;
-  cssObject.rotation = planeMesh.rotation;
+  cssObject.translateX(mapWidth/2);
+  cssObject.translateY(mapHeight/2);
+  cssObject.translateZ(-0.01);
   cssObject.scale.multiplyScalar(1/mapResolution);
+
+  var planeMaterial = new THREE.MeshBasicMaterial({color: 0x000000, side: THREE.DoubleSide, blending: THREE.NoBlending, opacity: 0});
+  planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapHeight), planeMaterial);
+  planeMesh.position.copy(cssObject.position);
+  planeMesh.rotation.copy(cssObject.rotation);
+  
 
   // TODO: make it automatic
   //cssObject.translateY(-1.05);
   //cssObject.translateX(-0.11);
 
-  sceneCSS = new THREE.Scene();
 
+  // stats
+  if (!stats) {
+    stats = new Stats();
+    $stat.append(stats.domElement);
+  }
+
+  // renderer
   if (!rendererCSS) {
     rendererCSS = new THREE.CSS3DRenderer();
     rendererCSS.setSize(window.innerWidth, window.innerHeight);
@@ -229,18 +231,8 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
     $container.append(rendererCSS.domElement);
   }
 
-  // stats
-  if (!stats) {
-    stats = new Stats();
-    $stat.append(stats.domElement);
-  }
-
-  // renderer
   if (!renderer) {
-    if (window.WebGLRenderingContext)
-      renderer = new THREE.WebGLRenderer({antialias: true});
-    else
-      renderer = new THREE.CanvasRenderer();
+    renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0xffffff, 1);
     renderer.domElement.style.position = 'absolute';
@@ -250,8 +242,10 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
     $container.append(renderer.domElement);
   }
 
-  // create scene
+  // create scenes
   scene = new THREE.Scene();
+  sceneCSS = new THREE.Scene();
+
 
   // camera
   cameraType = "perspective";
@@ -298,6 +292,7 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   updateInfo();
   animate();
 }
+
 
 function initialDraw(Mapping, uX, uY, uZ, uR)
 {
@@ -352,8 +347,10 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
     // finding x, y, z and color values for particles in each frame
     for (var f = 0; f < frames.frameno; f++) {
       frames.frame[f].geometry = new THREE.BufferGeometry();
-      frames.frame[f].geometry.addAttribute('position', Float32Array, frames.frame[f].particles, 3);
-      frames.frame[f].geometry.addAttribute('color', Float32Array, frames.frame[f].particles, 3);
+      //frames.frame[f].geometry.addAttribute('position', Float32Array, frames.frame[f].particles, 3);
+      //frames.frame[f].geometry.addAttribute('color', Float32Array, frames.frame[f].particles, 3);
+      frames.frame[f].positions = new Float32Array(frames.frame[f].particles * 3);
+      frames.frame[f].colors = new Float32Array(frames.frame[f].particles * 3);
 
       frames.frame[f].j = -1;
     }
@@ -375,31 +372,35 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       j = frames.frame[frameIndex].j;
 
       // set positions
-      var positions = frames.frame[frameIndex].geometry.attributes.position.array;
+      //var positions = frames.frame[frameIndex].geometry.attributes.position.array;
+      var positions = frames.frame[frameIndex].positions;
       positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
       positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
       positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
 
       // set colors
       if (mapping.c == -1) continue;
-      //tempColor = new THREE.Color(0x000000);
       dummy = aggregator(i, mapping.c, 0, 1);
       if (isNaN(dummy)) {
         positions[j*3] = NaN;
         continue;
       }
-      //tempColor.setHSL((dummy >= 0) ? Math.min(dummy, 1) * .3 + .7 : Math.max(dummy, -1) * .3 + .5, 1., .5);
-      var colors = frames.frame[frameIndex].geometry.attributes.color.array;
-      colors[j*3]   = palette2color(dummy, 0);//tempColor.r;
-      colors[j*3+1] = palette2color(dummy, 1);//tempColor.g;
-      colors[j*3+2] = palette2color(dummy, 2);//tempColor.b;
+      
+      //var colors = frames.frame[frameIndex].geometry.attributes.color.array;
+      var colors = frames.frame[frameIndex].colors;
+      colors[j*3]   = palette2color(dummy, 0);
+      colors[j*3+1] = palette2color(dummy, 1);
+      colors[j*3+2] = palette2color(dummy, 2);
     }
 
     for (var f = 0; f < frames.frameno; f++) {
-      frames.frame[f].geometry.computeBoundingSphere();
+      frames.frame[f].geometry.addAttribute( 'position', new THREE.BufferAttribute(frames.frame[f].positions, 3));
+      frames.frame[f].geometry.addAttribute( 'color', new THREE.BufferAttribute(frames.frame[f].colors, 3));
+      frames.frame[f].geometry.computeBoundingBox();
     }
 
-    particleMaterial = new THREE.ParticleSystemMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.9});
+    //particleMaterial = new THREE.ParticleSystemMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.9});
+    particleMaterial = new THREE.PointCloudMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.9});
     updateParticleSystem(currFrame);
   }
   lastTime = Date.now();
@@ -408,7 +409,8 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
 
 function updateParticleSystem(frameIndex) {
   scene.remove(particleSystem);
-  particleSystem = new THREE.ParticleSystem(frames.frame[frameIndex].geometry, particleMaterial);
+  //particleSystem = new THREE.ParticleSystem(frames.frame[frameIndex].geometry, particleMaterial);
+  particleSystem = new THREE.PointCloud(frames.frame[frameIndex].geometry, particleMaterial);
   particleSystem.scale.x = X / normalizingScale;
   particleSystem.scale.y = Y / normalizingScale;
   particleSystem.scale.z = Z / normalizingScale;
@@ -501,19 +503,15 @@ function updateCurrentFrame(t, T) {
 function animate()
 {
   requestAnimationFrame(animate);
-  //if (frames && frames.frameno > 1) {
+
   updateFrame();
   updateInfo();
-  //}
-  renderer.render(scene, camera);
-  rendererCSS.render(sceneCSS, camera);
-  update();
-}
 
-function update()
-{
   controls.update();
   stats.update();
+
+  renderer.render(scene, camera);
+  rendererCSS.render(sceneCSS, camera);
 }
 
 function setCameraType(type)
@@ -525,11 +523,13 @@ function setCameraType(type)
   {
     camera = new THREE.PerspectiveCamera(VIEW_ANGLE, WIDTH/HEIGHT, NEAR, FAR);
     cameraType = "perspective";
+    controls = new THREE.TrackballControls(camera, renderer.domElement);
   }
   else
   {
     camera = new THREE.OrthographicCamera(-WIDTH/ORTHOSCALE, WIDTH/ORTHOSCALE, HEIGHT/ORTHOSCALE, -HEIGHT/ORTHOSCALE, ORTHONEAR, ORTHOFAR);
     cameraType = "orthographic";
+    controls = new THREE.OrthographicTrackballControls (camera, renderer.domElement);
   }
 
   camera.position.set(x, y, z);
@@ -544,12 +544,10 @@ function setCameraType(type)
   calcWindowResize(rendererCSS, camera);
 
   // controls
-  controls = new THREE.TrackballControls(camera, renderer.domElement);
   controls.noZoom = false;
   controls.noPan = false;
   controls.staticMoving = false;
   controls.dynamicDampingFactor = 0.3;
-  controls.keys = [65, 83, 68];
 }
 
 function setTimeController(initialCall) {

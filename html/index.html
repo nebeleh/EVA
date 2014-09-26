@@ -4,21 +4,22 @@
     <meta charset="utf-8" />
     <title>EVA - Explorable Visual Analytics</title>
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css"> 
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css" rel="stylesheet"> 
     <link href="css/slider.css" rel="stylesheet">
     <link href="css/main.css" rel="stylesheet">
-    <script src="http://code.jquery.com/jquery.min.js"></script>
+    <script src="//code.jquery.com/jquery.min.js"></script>
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/js/bootstrap.min.js"></script>
     <script src="js/bootstrap-slider.js"></script>
     <script src="js/modernizr.js"></script>
-    <script src="js/three.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r68/three.min.js"></script>
     <script src="js/vis.js"></script>
     <script src="js/TrackballControls.js"></script>
+    <script src="js/OrthographicTrackballControls.js"></script>
     <script src="js/stats.min.js"></script>
     <script src="js/CSS3DRenderer.js"></script>
-    <script src="js/shp.js"></script>
-    <script src="js/dbf.js"></script>
     <script src="js/hashmap.js"></script>
+    <script src="js/Detector.js"></script>
+    <script src="js/Detector.js"></script>
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
           (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -146,7 +147,31 @@
         });
       }
 
+      function resizePanels() {
+        var winW, winH, scale;
+
+        winW = $(window).width();
+        winH = $(window).height();
+
+        var x = 2.5, y = 800;
+
+        if (winW > winH * x) {
+          scale = winH / y;
+        } else {
+          scale = winW / (x * y);
+        }
+
+        $('#params1').css("transform","scale(" + scale + ")");
+        $('#params2').css("transform","scale(" + scale + ")");
+        $('#params3').css("transform","scale(" + scale + ")");
+        $('#params4').css("transform","scale(" + scale + ")");
+      }
+
+      $(window).resize(resizePanels);
+
       $(document).ready(function(){
+
+        resizePanels();
 
         $('#loadAlert').hide();
 
@@ -216,6 +241,21 @@
 
         getSliderVals();
 
+        // check for WebGL
+        $('#webGLAlert').hide();
+        if (!Detector.webgl) {
+          $('#webGLAlertText').html( window.WebGLRenderingContext ? [
+        'Your graphics card does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation" style="color:#000">WebGL</a>.<br />',
+        'Find out how to get it <a href="http://get.webgl.org/" style="color:#000">here</a>.'
+      ].join( '\n' ) : [
+        'Your browser does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation" style="color:#000">WebGL</a>.<br/>',
+        'Find out how to get it <a href="http://get.webgl.org/" style="color:#000">here</a>.'
+      ].join( '\n' ) );
+
+          $('#webGLAlert').show();
+          $('#pageContent').append('<div id="overlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
+        }
+
         // set color palette
         $('#inputPaletteMax').val(1);
         $('#inputPaletteMid').val(0);
@@ -266,6 +306,13 @@
           <div id="dataProgressBar" class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="webGLAlert">
+      <div class="alert alert-danger">
+        <h4 class="alert-heading">Error</h4>
+        <div id="webGLAlertText"></div>
       </div>
     </div>
 
