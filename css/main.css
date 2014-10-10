@@ -2,15 +2,7 @@ body {
   margin: 0px;
   padding: 0px;
 }
-#loadAlert {
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  margin-left: -250px;
-  width: 500px;
-  z-index: 200;
-}
-#webGLAlert {
+#params5 {
   position: absolute;
   top: 30%;
   left: 50%;

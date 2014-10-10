@@ -2,7 +2,12 @@
   "name": "visualization",
   "version": "0.0.1",
   "dependencies": {
-    "express": "3.3.x"
+    "express": "3.3.x",
+    "hashmap": "0.9.3",
+    "jQuery": "1.7.4",
+    "line-reader": "0.2.3",
+    "xmlhttprequest": "1.6.0",
+    "jsdom": "0.8.8"
   },
   "engines": {
     "node": "0.8.x",

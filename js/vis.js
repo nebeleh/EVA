@@ -132,9 +132,9 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   }
   var latCenter, lngCenter;
   var dataLatMax = latToPixel(metaData.minOfColumn[1]),
-      dataLatMin = latToPixel(metaData.maxOfColumn[1]),
-      dataLngMax = lngToPixel(metaData.maxOfColumn[2]),
-      dataLngMin = lngToPixel(metaData.minOfColumn[2]);
+  dataLatMin = latToPixel(metaData.maxOfColumn[1]),
+  dataLngMax = lngToPixel(metaData.maxOfColumn[2]),
+  dataLngMin = lngToPixel(metaData.minOfColumn[2]);
   var c = (dataLatMax - dataLatMin) / (dataLngMax - dataLngMin);
   if ((dataLatMax - dataLatMin) < (dataLngMax - dataLngMin)) {
     mapWidth = 100;
@@ -347,8 +347,6 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
     // finding x, y, z and color values for particles in each frame
     for (var f = 0; f < frames.frameno; f++) {
       frames.frame[f].geometry = new THREE.BufferGeometry();
-      //frames.frame[f].geometry.addAttribute('position', Float32Array, frames.frame[f].particles, 3);
-      //frames.frame[f].geometry.addAttribute('color', Float32Array, frames.frame[f].particles, 3);
       frames.frame[f].positions = new Float32Array(frames.frame[f].particles * 3);
       frames.frame[f].colors = new Float32Array(frames.frame[f].particles * 3);
 
@@ -372,7 +370,6 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       j = frames.frame[frameIndex].j;
 
       // set positions
-      //var positions = frames.frame[frameIndex].geometry.attributes.position.array;
       var positions = frames.frame[frameIndex].positions;
       positions[j*3]   = (mapping.x != -1) ? aggregator(i, mapping.x, 0, normalizingScale) : 0;
       positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
@@ -386,7 +383,6 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
         continue;
       }
       
-      //var colors = frames.frame[frameIndex].geometry.attributes.color.array;
       var colors = frames.frame[frameIndex].colors;
       colors[j*3]   = palette2color(dummy, 0);
       colors[j*3+1] = palette2color(dummy, 1);
@@ -399,7 +395,6 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       frames.frame[f].geometry.computeBoundingBox();
     }
 
-    //particleMaterial = new THREE.ParticleSystemMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.9});
     particleMaterial = new THREE.PointCloudMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.9});
     updateParticleSystem(currFrame);
   }
@@ -409,7 +404,6 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
 
 function updateParticleSystem(frameIndex) {
   scene.remove(particleSystem);
-  //particleSystem = new THREE.ParticleSystem(frames.frame[frameIndex].geometry, particleMaterial);
   particleSystem = new THREE.PointCloud(frames.frame[frameIndex].geometry, particleMaterial);
   particleSystem.scale.x = X / normalizingScale;
   particleSystem.scale.y = Y / normalizingScale;
@@ -684,4 +678,51 @@ function setPaletteRangesVIS(l, m, h) {
   maxC = parseFloat(h);
   midC = parseFloat(m);
   minC = parseFloat(l);
+}
+
+function logStatus() {
+  var d = new Date();
+
+  var status = {};
+  status.timeStamp = d.getTime();
+
+  status.datasetIndex = mapping.d;
+  status.dimensionXIndex = mapping.x;
+  status.dimensionYIndex = mapping.y;
+  status.dimensionZIndex = mapping.z;
+  status.dimensionCIndex = mapping.c;
+  status.dimensionTIndex = mapping.t;
+
+  status.scaleX = X;
+  status.scaleY = Y;
+  status.scaleZ = Z;
+  status.scaleR = R;
+
+  status.paletteIndex = mapping.p;
+  status.maxColor = maxC;
+  status.midColor = midC;
+  status.minColor = minC;
+
+  status.axisHelper = $("#checkboxAxisHelper").is(':checked');
+  status.xyHelper = $("#checkboxGridXY").is(':checked');
+  status.xzHelper = $("#checkboxGridXZ").is(':checked');
+  status.yzHelper = $("#checkboxGridYZ").is(':checked');
+  status.geoHelper = $("#checkboxGeoLayer").is(':checked');
+
+  status.cameraType = cameraType;
+  status.cameraPositionX = camera.position.x;
+  status.cameraPositionY = camera.position.y;
+  status.cameraPositionZ = camera.position.z;
+  status.cameraRotationX = camera.rotation.x;
+  status.cameraRotationY = camera.rotation.y;
+  status.cameraRotationZ = camera.rotation.z;
+
+  status.currentFrame = currFrame;
+
+  $.ajax({
+    url: '/logger', 
+    type: 'POST', 
+    contentType: 'application/json', 
+    data: JSON.stringify(status)}
+    ); 
 }

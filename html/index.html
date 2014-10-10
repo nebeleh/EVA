@@ -42,6 +42,7 @@
       [[255,255,204],[255,237,160],[254,217,118],[254,178,76],[253,141,60],[252,78,42],[227,26,28],[189,0,38],[128,0,38]]
       ];
       var x, y, z, r;
+      var dataLoaded = false;
 
       var changePalette = function(p) {
         mapping.p = p;
@@ -87,7 +88,7 @@
         initialDraw(mapping, x, y, z, r);
       };
 
-      var loadData = function(dataname, datapath, datafile) {
+      var loadData = function(dataname, datapath, datafile, dataindex) {
         $('#dataSelectorDropdown').html(dataname.substr(0, 27) + ' <span class="caret"></span>');
         $('#xDimensionDropdown').html('NONE <span class="caret"></span>');
         $('#yDimensionDropdown').html('NONE <span class="caret"></span>');
@@ -99,12 +100,13 @@
           jQuery(this).html(newHTML);
         });
         mapping.x = mapping.y = mapping.z = mapping.c = mapping.t = -1;
+        mapping.d = dataindex;
         initialDraw(mapping, x, y, z, r);
 
         if (datapath === -1) {
           return;
         }
-        $('#loadAlert').show();
+        $('#loadAlert').removeClass('hidden');
         $('#pageContent').append('<div id="overlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
 
         $.getJSON(datapath + datafile, function(metaData) {
@@ -138,7 +140,8 @@
             });
 
             init($('#drawCanvas'), $('#stat'), buf, metaData, colorPalette);
-            $('#loadAlert').hide();
+            dataLoaded = true;
+            $('#loadAlert').addClass('hidden');
             $('#dataProgressBar').css('width', '0%');
             $('#overlay').remove();
           };
@@ -161,19 +164,58 @@
           scale = winW / (x * y);
         }
 
-        $('#params1').css("transform","scale(" + scale + ")");
-        $('#params2').css("transform","scale(" + scale + ")");
-        $('#params3').css("transform","scale(" + scale + ")");
-        $('#params4').css("transform","scale(" + scale + ")");
+        for (var i = 1; i <= 5; i++) {
+          $('#params'+i).css("transform","scale(" + scale + ")");
+        };
       }
 
       $(window).resize(resizePanels);
 
+      function setExperiment() {
+
+        if (dataLoaded == false) {
+          $('#generalAlert').addClass('alert-dismissible');
+          $('#generalAlert').removeClass('hidden');
+          $('#generalAlertText').html('<button type="button" class="close" onclick="$(\'#generalAlert\').addClass(\'hidden\');""><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Please first load a dataset');
+          return;
+        }
+
+        if ($('#experimentController').attr('class') === 'glyphicon glyphicon-play') {
+          $('#experimentParams').removeClass('hidden');
+        } else {
+          $('#experimentClose').removeClass('hidden');
+        }
+
+      }
+
+      function startExperiment (userID) {
+
+        var d = new Date();
+        $.ajax({
+          url: '/setLogger', 
+          type: 'POST', 
+          contentType: 'application/json', 
+          data: JSON.stringify({time: d.getTime(), user: userID})}
+          );
+
+        logger = setInterval(function () {logStatus()}, 1000);
+
+        $('#experimentController').toggleClass('glyphicon-play').toggleClass('glyphicon-stop');
+        $('#experimentButtonName').html(' Stop Experiment');
+        $('#experimentButton').toggleClass('btn-info').toggleClass('btn-success');
+      }
+
+      function stopExperiment () {
+        clearInterval(logger);
+
+        $('#experimentController').toggleClass('glyphicon-stop').toggleClass('glyphicon-play');
+        $('#experimentButtonName').html(' Start Experiment');
+        $('#experimentButton').toggleClass('btn-success').toggleClass('btn-info');
+      }
+
       $(document).ready(function(){
 
         resizePanels();
-
-        $('#loadAlert').hide();
 
         // load sliders
         $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
@@ -242,9 +284,8 @@
         getSliderVals();
 
         // check for WebGL
-        $('#webGLAlert').hide();
         if (!Detector.webgl) {
-          $('#webGLAlertText').html( window.WebGLRenderingContext ? [
+          $('#generalAlertText').html( window.WebGLRenderingContext ? [
         'Your graphics card does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation" style="color:#000">WebGL</a>.<br />',
         'Find out how to get it <a href="http://get.webgl.org/" style="color:#000">here</a>.'
       ].join( '\n' ) : [
@@ -252,7 +293,7 @@
         'Find out how to get it <a href="http://get.webgl.org/" style="color:#000">here</a>.'
       ].join( '\n' ) );
 
-          $('#webGLAlert').show();
+          $('#generalAlert').removeClass('hidden');
           $('#pageContent').append('<div id="overlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
         }
 
@@ -286,9 +327,9 @@
         // read database metadata
         $.getJSON('data/datasets.json', function(data) {
           $('.data-selector').each(function(d) {
-            var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(\'NONE\',-1,-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
+            var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(\'NONE\',-1,-1,-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
             data.datasets.forEach(function(e, i, a){
-              newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(\'' + e.dataname + '\',\'' + e.path + '\',\'' + e.filename + '\');">' + i + ' - ' + e.dataname + '</a></li>\n';
+              newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(\'' + e.dataname + '\',\'' + e.path + '\',\'' + e.filename + '\',' + i + ');">' + i + ' - ' + e.dataname + '</a></li>\n';
             });
             jQuery(this).html(newHTML);
           });
@@ -298,8 +339,9 @@
   </head>
   <body>
 
-    <div id="loadAlert">
-      <div class="alert alert-warning">
+    <div id="params5">
+
+      <div id="loadAlert" class="alert alert-warning hidden">
         <h4 class="alert-heading">Loading</h4>
         Loading data ...
         <div class="progress">
@@ -307,13 +349,36 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div id="webGLAlert">
-      <div class="alert alert-danger">
+      <div id="generalAlert" class="alert alert-danger hidden">
         <h4 class="alert-heading">Error</h4>
-        <div id="webGLAlertText"></div>
+        <div id="generalAlertText"></div>
       </div>
+
+      <div id="experimentParams" class="panel panel-warning hidden">
+        <div class="panel-heading">
+          <h3 class="panel-title">Experiment Parameters
+          <button type="button" class="close" onclick="$('#experimentParams').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+          </h3>
+        </div>
+        <div class="input-group">
+          <span class="input-group-addon">User ID: </span>
+          <input type="text" class="form-control" placeholder="ID" id="userID">
+          <span class="input-group-btn">
+          <button class="btn btn-default" type="button" onclick="if($('#userID').val()){$('#experimentParams').addClass('hidden');startExperiment($('#userID').val());}">Submit</button>
+          </span>
+        </div>
+      </div>
+
+      <div id="experimentClose" class="panel panel-danger hidden">
+        <div class="panel-heading">
+          <h3 class="panel-title">Warning!</h3>
+        </div>
+        <b>Are you sure you want to stop the experiment?</b>
+        <button class="btn btn-danger" type="button" onclick="$('#experimentClose').addClass('hidden');stopExperiment();">YES</button>
+        <button class="btn btn-success" type="button" onclick="$('#experimentClose').addClass('hidden');">NO</button>
+      </div>
+
     </div>
 
     <div id="pageContent">
@@ -489,6 +554,13 @@
               <td id="Tindicator"></td>
             </tr>
           </table>
+        </div>
+
+        <div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">Experiment</h3>
+          </div>
+          <button type="button" id="experimentButton" class="btn btn-success btn-block" onclick="setExperiment();"><span id="experimentController" class="glyphicon glyphicon-play"></span><span id="experimentButtonName"> Start Experiment</span></button>
         </div>
 
       </div>
