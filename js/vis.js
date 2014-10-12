@@ -5,6 +5,7 @@ var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffs
 var X, Y, Z, R;
 var lastTime = -1, currTime, playMode = true;
 var mapScaleLat, mapScalelng;
+var snapshotList;
 
 var pi_180 = Math.PI / 180.0;
 var pi_4 = Math.PI * 4;
@@ -232,7 +233,7 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   }
 
   if (!renderer) {
-    renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
+    renderer = new THREE.WebGLRenderer({alpha: true, antialias: true, preserveDrawingBuffer: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0xffffff, 1);
     renderer.domElement.style.position = 'absolute';
@@ -427,8 +428,8 @@ function updateDraw(uX, uY, uZ, uR)
 }
 
 function updateInfo() {
-  $('#eventsindicator').text((frames && frames.frame) ? frames.frame[currFrame].particles : '0');
-  $('#Tindicator').text((frames && frames.frameno > 1 && !(mapping.x == -1 && mapping.y == -1 && mapping.z == -1) && frames.frame[currFrame].particles > 0) ? (frames.frame[currFrame].minValue.toFixed(0) + ' - ' + frames.frame[currFrame].maxValue.toFixed(0)) : 'none');
+  //$('#eventsindicator').text((frames && frames.frame) ? frames.frame[currFrame].particles : '0');
+  $('#Tindicator').text((frames && frames.frameno > 1 && !(mapping.x == -1 && mapping.y == -1 && mapping.z == -1) && frames.frame[currFrame].particles > 0) ? '(' + (frames.frame[currFrame].minValue.toFixed(0) + ' - ' + frames.frame[currFrame].maxValue.toFixed(0) + ')') : '');
 }
 
 function calcWindowResize(rend, camera)
@@ -476,7 +477,7 @@ function updateFrame() {
   if (!frames || frames.frameno <= 1) {
     $('#tSlider').slider('setValue', $('#tSlider').attr('data-slider-min'));
   }
-  $('#frameNumber').text(frames ? (currFrame+1) + '/' + frames.frameno : 'none');
+  //$('#frameNumber').text(frames ? (currFrame+1) + '/' + frames.frameno : 'none');
 }
 
 
@@ -508,7 +509,7 @@ function animate()
   rendererCSS.render(sceneCSS, camera);
 }
 
-function setCameraType(type)
+function setCameraType(type, Pos, Rot, Up, Side, Cnt)
 {
   var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
   var x = -100, y = -100, z = 100;
@@ -526,12 +527,31 @@ function setCameraType(type)
     controls = new THREE.OrthographicTrackballControls (camera, renderer.domElement);
   }
 
-  camera.position.set(x, y, z);
-  camera.lookAt(scene.position);
-  if (x == 0 && y == 0)
-    camera.up = new THREE.Vector3(0, 1, 0);
-  else
-    camera.up = new THREE.Vector3(0, 0, 1);
+  if (Pos !== undefined) {
+    camera.position.set(Pos.x, Pos.y, Pos.z);
+  } else {
+    camera.position.set(x, y, z);  
+  }
+  
+
+  // set camera rotation
+  if (Rot !== undefined && Up !== undefined && Side !== undefined && Cnt !== undefined) {
+    camera.rotation.set(Rot.x, Rot.y, Rot.z);
+    camera.up.set(Up.x, Up.y, Up.z);
+    if (type === "orthographic") {
+      camera.left = Side.l;
+      camera.top = Side.t;
+      camera.bottom = Side.b;
+      camera.right = Side.r;
+    }
+    controls.target.set(Cnt.x, Cnt.y, Cnt.z);
+  } else {
+    camera.lookAt(scene.position);
+    if (x == 0 && y == 0)
+      camera.up = new THREE.Vector3(0, 1, 0);
+    else
+      camera.up = new THREE.Vector3(0, 0, 1);    
+  }
 
   // events
   calcWindowResize(renderer, camera);
@@ -680,7 +700,7 @@ function setPaletteRangesVIS(l, m, h) {
   minC = parseFloat(l);
 }
 
-function logStatus() {
+function takeSnapshot() {
   var d = new Date();
 
   var status = {};
@@ -692,6 +712,11 @@ function logStatus() {
   status.dimensionZIndex = mapping.z;
   status.dimensionCIndex = mapping.c;
   status.dimensionTIndex = mapping.t;
+
+  status.sliderX = $('#xSlider').data('slider').getValue();
+  status.sliderY = $('#ySlider').data('slider').getValue();
+  status.sliderZ = $('#zSlider').data('slider').getValue();
+  status.sliderR = $('#rSlider').data('slider').getValue();
 
   status.scaleX = X;
   status.scaleY = Y;
@@ -710,19 +735,97 @@ function logStatus() {
   status.geoHelper = $("#checkboxGeoLayer").is(':checked');
 
   status.cameraType = cameraType;
-  status.cameraPositionX = camera.position.x;
-  status.cameraPositionY = camera.position.y;
-  status.cameraPositionZ = camera.position.z;
-  status.cameraRotationX = camera.rotation.x;
-  status.cameraRotationY = camera.rotation.y;
-  status.cameraRotationZ = camera.rotation.z;
+  status.cameraPosition = {x: camera.position.x, y: camera.position.y, z: camera.position.z};
+  status.cameraRotation = {x: camera.rotation.x, y: camera.rotation.y, z: camera.rotation.z};
+  status.cameraUp = {x: camera.up.x, y: camera.up.y, z: camera.up.z};
+  status.cameraSide = {l: camera.left, r: camera.right, t: camera.top, b: camera.bottom}; // for saving zoom in ortho camera
+  status.control = {x: controls.target.x, y: controls.target.y, z: controls.target.z}; // for saving pan movements
 
   status.currentFrame = currFrame;
+
+  return status;
+}
+
+function logStatus() {
 
   $.ajax({
     url: '/logger', 
     type: 'POST', 
     contentType: 'application/json', 
-    data: JSON.stringify(status)}
+    data: JSON.stringify(takeSnapshot())}
     ); 
+}
+
+function saveHistory() {
+  if (mapping.d === undefined || mapping.d == -1) return;
+
+  snapshotList = snapshotList || [];
+  snapshotList.push(takeSnapshot());
+
+  var currentHistory = $('#historyList').html();
+  currentHistory = '<img style="border:1px solid black;" width="170" height="80" id="snapshotID' + (snapshotList.length-1) + '" onclick="loadHistory(' + (snapshotList.length-1) + ');"><hr />' + currentHistory;
+  $('#historyList').html(currentHistory);
+
+  $('#snapshotID' + (snapshotList.length-1)).attr('src', renderer.domElement.toDataURL());
+}
+
+function loadHistory(i) {
+  var status = snapshotList[i];
+
+  // check for data dimension consistency
+  if (status.datasetIndex != mapping.d) {
+    console.log("error - saved dataset is different than loaded one");
+    return;
+  }
+
+  // redraw the picture based on saved parameters
+  var Mapping = mapping;
+  Mapping.x = status.dimensionXIndex;
+  Mapping.y = status.dimensionYIndex;
+  Mapping.z = status.dimensionZIndex;
+  Mapping.c = status.dimensionCIndex;
+  Mapping.t = status.dimensionTIndex;
+
+  Mapping.p = status.paletteIndex;
+  maxC = status.maxColor;
+  midC = status.midColor;
+  minC = status.minColor;
+  
+  initialDraw(Mapping, status.scaleX, status.scaleY, status.scaleZ, status.scaleR);
+  
+  currFrame = status.currentFrame;
+  playMode = false;
+  if ($('#timeController').attr('class') === 'glyphicon glyphicon-pause') {
+    $('#timeController').toggleClass('glyphicon-pause').toggleClass('glyphicon-play');
+  }
+  updateFrame();
+  updateParticleSystem(currFrame);
+
+  setAxisHelper(status.axisHelper);
+  setGridXY(status.xyHelper);
+  setGridXZ(status.xzHelper);
+  setGridYZ(status.yzHelper);
+  setGeoLayer(status.geoHelper);
+
+  setCameraType(status.cameraType, status.cameraPosition, status.cameraRotation, status.cameraUp, status.cameraSide, status.control);
+
+  // update UI based on saved parameters
+  changeDimensionName('xDimensionDropdown', metaData.columnNames[status.dimensionXIndex]);
+  changeDimensionName('yDimensionDropdown', metaData.columnNames[status.dimensionYIndex]);
+  changeDimensionName('zDimensionDropdown', metaData.columnNames[status.dimensionZIndex]);
+  changeDimensionName('cDimensionDropdown', metaData.columnNames[status.dimensionCIndex]);
+  changeDimensionName('tDimensionDropdown', metaData.columnNames[status.dimensionTIndex]);
+
+  changeCameraName(status.cameraType);
+
+  $('#xSlider').data('slider').setValue(status.sliderX);
+  $('#ySlider').data('slider').setValue(status.sliderY);
+  $('#zSlider').data('slider').setValue(status.sliderZ);
+  $('#rSlider').data('slider').setValue(status.sliderR);
+  getSliderVals();
+
+  $('#inputPaletteMax').val(status.maxColor);
+  $('#inputPaletteMid').val(status.midColor);
+  $('#inputPaletteMin').val(status.minColor);
+  setPaletteLegend();
 }

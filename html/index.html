@@ -78,13 +78,29 @@
         $('#paletteLegend').html(newHTML);
       }
 
+      function changeCameraName(cameraType) {
+        if (cameraType === "perspective") {
+          $('#cameraDropdown').html('Perspective<span class=\'caret\'></span>');
+        } else {
+          $('#cameraDropdown').html('Ortho<span class=\'caret\'></span>');
+        }
+      }
+
+      function changeDimensionName(dropdownId, dimensionName) {
+        if (dimensionName === undefined) {
+          $('#' + dropdownId).html('NONE <span class="caret"></span>');
+        } else {
+          $('#' + dropdownId).html(dimensionName.substr(0,28) + ' <span class="caret"></span>');
+        }
+      }
+
       var mapDimension = function(dropdownId, dimensionName, dimensionIndex) {
         if (dropdownId == "xDimensionDropdown") { mapping.x = dimensionIndex; }
         else if (dropdownId == "yDimensionDropdown") { mapping.y = dimensionIndex; }
         else if (dropdownId == "zDimensionDropdown") { mapping.z = dimensionIndex; }
         else if (dropdownId == "cDimensionDropdown") { mapping.c = dimensionIndex; }
         else if (dropdownId == "tDimensionDropdown") { mapping.t = dimensionIndex; }
-        $('#' + dropdownId).html(dimensionName.substr(0,28) + ' <span class="caret"></span>');
+        changeDimensionName(dropdownId, dimensionName);
         initialDraw(mapping, x, y, z, r);
       };
 
@@ -213,6 +229,17 @@
         $('#experimentButton').toggleClass('btn-success').toggleClass('btn-info');
       }
 
+      function getSliderVals () {
+          x = (parseFloat($('#xSlider').attr('data-slider-max')) - XSlider.getValue() + parseFloat($('#xSlider').attr('data-slider-min')))/10;
+          $('#Xindicator').text(x.toFixed(1));
+          y = (parseFloat($('#ySlider').attr('data-slider-max')) - YSlider.getValue() + parseFloat($('#ySlider').attr('data-slider-min')))/10;
+          $('#Yindicator').text(y.toFixed(1));
+          z = (parseFloat($('#zSlider').attr('data-slider-max')) - ZSlider.getValue() + parseFloat($('#zSlider').attr('data-slider-min')))/10;
+          $('#Zindicator').text(z.toFixed(1));
+          r = (parseFloat($('#rSlider').attr('data-slider-max')) - RSlider.getValue() + parseFloat($('#rSlider').attr('data-slider-min')))/100;
+          $('#Rindicator').text(r.toFixed(2));
+        };
+
       $(document).ready(function(){
 
         resizePanels();
@@ -220,18 +247,7 @@
         // load sliders
         $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
 
-        var oldX = -100, oldY = -100, oldZ = -100, oldR = -100, oldT = -100;
-
-        var getSliderVals = function() {
-          x = (parseFloat($('#xSlider').attr('data-slider-max')) - X.getValue() + parseFloat($('#xSlider').attr('data-slider-min')))/10;
-          $('#Xindicator').text(x.toFixed(1));
-          y = (parseFloat($('#ySlider').attr('data-slider-max')) - Y.getValue() + parseFloat($('#ySlider').attr('data-slider-min')))/10;
-          $('#Yindicator').text(y.toFixed(1));
-          z = (parseFloat($('#zSlider').attr('data-slider-max')) - Z.getValue() + parseFloat($('#zSlider').attr('data-slider-min')))/10;
-          $('#Zindicator').text(z.toFixed(1));
-          r = (parseFloat($('#rSlider').attr('data-slider-max')) - R.getValue() + parseFloat($('#rSlider').attr('data-slider-min')))/100;
-          $('#Rindicator').text(r.toFixed(2));
-        };
+        var oldX = -100, oldY = -100, oldZ = -100, oldR = -100, oldT = -100;     
 
         var changed = function() {
           getSliderVals();
@@ -261,19 +277,19 @@
           }
         };
 
-        var X = $('#xSlider').slider()
+        XSlider = $('#xSlider').slider()
         .on('slide', changed)
         .data('slider');
 
-        var Y = $('#ySlider').slider()
+        YSlider = $('#ySlider').slider()
         .on('slide', changed)
         .data('slider');
 
-        var Z = $('#zSlider').slider()
+        ZSlider = $('#zSlider').slider()
         .on('slide', changed)
         .data('slider');
 
-        var R = $('#rSlider').slider()
+        RSlider = $('#rSlider').slider()
         .on('slide', changed)
         .data('slider');
 
@@ -389,7 +405,7 @@
       <div id="params4">
         <div class="panel panel-info">
           <div class="panel-heading">
-            <h3 class="panel-title">Time Slider</h3>
+            <h3 class="panel-title">Time Slider <span id="Tindicator"></span></h3>
           </div>
           <ul class="nav nav-pills">
             <li>
@@ -400,11 +416,6 @@
             <li>
             <ul>
               <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="10" data-slider-step="0.1" data-slider-value="1" id="tSlider" data-slider-id="TS" data-slider-tooltip="hide" data-slider-selection="before">
-            </ul>
-            </li>
-            <li>
-            <ul>
-              <span id="frameNumber">none</span>
             </ul>
             </li>
           </ul>
@@ -502,6 +513,12 @@
           </div>
           <table class="table tablenoborder">
             <tr>
+              <td id="Xindicator"></td>
+              <td id="Yindicator"></td>
+              <td id="Zindicator"></td>
+              <td id="Rindicator"></td>
+            </tr>
+            <tr>
               <td>
                 <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="xSlider" data-slider-id="XS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
               </td>
@@ -524,36 +541,14 @@
           </table>
         </div>
 
-        <div class="panel panel-info">
+        <div class="panel panel-info" id="panelHistory">
           <div class="panel-heading">
-            <h3 class="panel-title">Information</h3>
+            <h3 class="panel-title">History</h3>
           </div>
-          <table class="table table-striped">
-            <tr>
-              <td><b>X Scale</b></td>
-              <td id="Xindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Y Scale</b></td>
-              <td id="Yindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Z Scale</b></td>
-              <td id="Zindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Radius</b></td>
-              <td id="Rindicator"></td>
-            </tr>
-            <tr>
-              <td><b>Events</b></td>
-              <td id="eventsindicator"></td>
-            </tr>
-            <tr>
-              <td><b>T Range</b></td>
-              <td id="Tindicator"></td>
-            </tr>
-          </table>
+          <button type="button" id="saveViewButton" class="btn btn-primary btn-block" onclick="saveHistory();">Save</button>
+          <hr>
+          <div id="historyList">
+          </div>
         </div>
 
         <div class="panel panel-primary">
@@ -629,8 +624,8 @@
                   <li class="dropdown">
                   <a style="width: 50% !important" id="cameraDropdown" role="button" data-toggle="dropdown" href="#">Perspective<span class="caret"></span></a>
                   <ul id="cameraDropdownItems" class="dropdown-menu" role="menu" aria-labelledby="cameraDropdown">
-                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="$('#cameraDropdown').html('Perspective<span class=\'caret\'></span>');setCameraType('perspective');">Perspective</a></li>
-                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="$('#cameraDropdown').html('Ortho<span class=\'caret\'></span>');setCameraType('orthographic');">Orthographic</a></li>
+                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="changeCameraName('perspective');setCameraType('perspective');">Perspective</a></li>
+                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="changeCameraName('orthographic');setCameraType('orthographic');">Orthographic</a></li>
                   </ul>
                   </li>
                 </ul>

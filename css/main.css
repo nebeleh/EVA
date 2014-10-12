@@ -15,7 +15,7 @@ body {
   top: 16%;
   right: 20px;
   z-index: 100;
-  width: 220px;
+  width: 240px;
   transform-origin: right top;
 }
 #params2 {
@@ -39,8 +39,8 @@ body {
   position: fixed;
   bottom: 5px;
   left: 50%;
-  width: 1400px;
-  margin-left: -700px;
+  width: 1200px;
+  margin-left: -600px;
   z-index: 99;
   transform-origin: bottom center;
 }
@@ -49,6 +49,9 @@ body {
   bottom: 10px;
   right: 10px;
   z-index: 50;
+}
+#XS, #YS, #ZS, #RS {
+  height: 170px;
 }
 #XS .slider-handle {
   background: red;
@@ -81,13 +84,17 @@ body {
   background: #84B4DC;
 }
 #tSlider {
-  width: 1200px;
+  width: 1040px;
 }
 .tablenoborder td {
   border-top: none !important;
   padding-top: 20px !important;
   padding-bottom: 0px !important;
   text-align: center !important;
+}
+.tablenoborder {
+  table-layout: fixed !important;
+  word-wrap: break-word !important;
 }
 .dropdown {
   width: 240px !important;
@@ -114,4 +121,11 @@ body {
 } 
 .table {
   margin-bottom: 5px !important;
+}
+#panelHistory {
+  height: 310px;
+}
+#historyList {
+  overflow-y: scroll;
+  height: 55%;
 }
