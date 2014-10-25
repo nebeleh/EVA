@@ -2,7 +2,7 @@ var renderer, camera, cameraType, scene, controls, stats, axisHelper, sceneCSS, 
 var VIEW_ANGLE = 50, NEAR = 1, FAR = 100000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame = 0, colorPalette;
 var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
-var X, Y, Z, R;
+var X = 100, Y = 100, Z = 100, R = 0.05;
 var lastTime = -1, currTime, playMode = true;
 var mapScaleLat, mapScalelng;
 var snapshotList;
