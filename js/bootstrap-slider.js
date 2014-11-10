@@ -318,7 +318,10 @@
 			if (this.touchCapable) {
 				ev = ev.touches[0];
 			}
-			var percentage = (ev[this.mousePos] - this.offset[this.stylePos])*100/this.size;
+			// this is to compensate for page scaling
+			var matrixRegex = /matrix\((-?\d*\.?\d+),\s*0,\s*0,\s*(-?\d*\.?\d+),\s*0,\s*0\)/,
+			sliderScale = $('#params1').css('transform').match(matrixRegex);
+			var percentage = (ev[this.mousePos] - this.offset[this.stylePos])*100/this.size/sliderScale[1];
 			percentage = Math.round(percentage/this.percentage[2])*this.percentage[2];
 			return Math.max(0, Math.min(100, percentage));
 		},
