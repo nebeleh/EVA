@@ -13,7 +13,7 @@ app.get('/', function(request, response) {
 });
 
 // logger for experiments
-var log
+var log;
 app.post('/setLogger', function (req, res) {
   log = fs.createWriteStream('logs/user-' + req.body.user + '-time-' + req.body.time, {'flags': 'a'});
   res.send('');
