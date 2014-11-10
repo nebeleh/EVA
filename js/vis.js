@@ -128,7 +128,7 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
     zoomLevel = 12;
     mapResolution = 0.01358 * (1 << zoomLevel);
   } else if (metaData.dataClass == "wac" || metaData.dataClass == "rac")  {
-    zoomLevel = 9;
+    zoomLevel = 10;
     mapResolution = 0.0414 * (1 << zoomLevel);
   }
   var latCenter, lngCenter;
