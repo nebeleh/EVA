@@ -20,4 +20,5 @@ logs/
 shares/
 
 # node installed packages
-node_modules
+node_modules/
+

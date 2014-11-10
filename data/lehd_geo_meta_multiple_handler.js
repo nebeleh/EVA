@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// run like this: $./lehd_geo_meta_multiple_handler.js ./geo/test.dbf ./lehd/pa_rac_all ./lehd/pa_rac_fil1.csv ./lehd/pa_rac_file2.csv ...
+// run like this: $./lehd_geo_meta_multiple_handler.js ./geo/test.dbf ./lehd/pa_rac_all ./lehd/pa_rac_file1.csv ./lehd/pa_rac_file2.csv ...
 //
 // files: tiger_line.dbf output_name list_of_input_files.csv
 //
