@@ -12,7 +12,6 @@ app.get('/', function(request, response) {
   response.send(buffer.toString());
 });
 
-
 /*
 // logger for experiments
 var log;
@@ -23,7 +22,8 @@ app.post('/setLogger', function (req, res) {
 app.post('/logger', function (req, res) {
   log.write(JSON.stringify(req.body) + '\n');
   res.send('');
-});*/
+});
+*/
 
 app.configure(function() {
   app.use('/js', express.static(__dirname + '/js'));
