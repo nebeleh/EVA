@@ -1,9 +1,6 @@
 {
   "datasets": [
   {"path": "/data/lehd/", "filename": "pa_rac_all.json", "dataname": "LEHD, Residence Area Characteristics, PA"},
-  {"path": "/data/lehd/", "filename": "pa_wac_all.json", "dataname": "LEHD, Workplace Area Characteristics, PA"},
-  {"path": "/data/twitter/", "filename": "tweets.json", "dataname": "Twitter Sentiment Analysis"},
-  {"path": "/data/ratings/", "filename": "ratings.json", "dataname": "Perfume Ratings"},
-  {"path": "/data/forex/", "filename": "forex.json", "dataname": "Forex"}
+  {"path": "/data/lehd/", "filename": "pa_wac_all.json", "dataname": "LEHD, Workplace Area Characteristics, PA"}
   ]
 }

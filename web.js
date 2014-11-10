@@ -13,7 +13,9 @@ app.get('/', function(request, response) {
 });
 
 
-var log
+/*
+// logger for experiments
+var log;
 app.post('/setLogger', function (req, res) {
   log = fs.createWriteStream('logs/user-' + req.body.user + '-time-' + req.body.time, {'flags': 'a'});
   res.send('');
@@ -21,7 +23,7 @@ app.post('/setLogger', function (req, res) {
 app.post('/logger', function (req, res) {
   log.write(JSON.stringify(req.body) + '\n');
   res.send('');
-});
+});*/
 
 app.configure(function() {
   app.use('/js', express.static(__dirname + '/js'));
@@ -29,7 +31,7 @@ app.configure(function() {
   app.use('/data', express.static(__dirname + '/data', { maxAge: oneHour}));
 })
 
-var port = process.env.PORT || 8080;
+var port = process.env.PORT || 8081;
 app.listen(port, function() {
   console.log("Listening on " + port);
 });
