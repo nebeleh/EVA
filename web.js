@@ -28,10 +28,11 @@ app.post('/logger', function (req, res) {
 app.configure(function() {
   app.use('/js', express.static(__dirname + '/js'));
   app.use('/css', express.static(__dirname + '/css'));
+  app.use('/fonts', express.static(__dirname + '/fonts'));
   app.use('/data', express.static(__dirname + '/data', { maxAge: oneHour}));
 })
 
-var port = process.env.PORT || 8081;
+var port = process.env.PORT || 8080;
 app.listen(port, function() {
   console.log("Listening on " + port);
 });
