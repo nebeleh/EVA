@@ -1,689 +1,730 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>EVA - Explorable Visual Analytics</title>
-    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet">
-    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css" rel="stylesheet"> 
-    <link href="css/slider.css" rel="stylesheet">
-    <link href="css/main.css" rel="stylesheet">
-    <script src="//code.jquery.com/jquery.min.js"></script>
-    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/js/bootstrap.min.js"></script>
-    <script src="js/bootstrap-slider.js"></script>
-    <script src="js/modernizr.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r68/three.min.js"></script>
-    <script src="js/vis.js"></script>
-    <script src="js/TrackballControls.js"></script>
-    <script src="js/OrthographicTrackballControls.js"></script>
-    <script src="js/stats.min.js"></script>
-    <script src="js/CSS3DRenderer.js"></script>
-    <script src="js/hashmap.js"></script>
-    <script src="js/Detector.js"></script>
-    <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+<head>
+  <meta charset="utf-8" />
+  <title>EVA - Explorable Visual Analytics</title>
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet">
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css" rel="stylesheet"> 
+  <link href="css/slider.css" rel="stylesheet">
+  <link href="css/main.css" rel="stylesheet">
+  <script src="//code.jquery.com/jquery.min.js"></script>
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/js/bootstrap.min.js"></script>
+  <script src="js/bootstrap-slider.js"></script>
+  <script src="js/modernizr.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/three.js/r68/three.min.js"></script>
+  <script src="js/vis.js"></script>
+  <script src="js/TrackballControls.js"></script>
+  <script src="js/OrthographicTrackballControls.js"></script>
+  <script src="js/stats.min.js"></script>
+  <script src="js/CSS3DRenderer.js"></script>
+  <script src="js/hashmap.js"></script>
+  <script src="js/Detector.js"></script>
+  <script src="js/async.js"></script>
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-      ga('create', 'UA-51767927-1', 'cmucreatelab.org');
-      ga('send', 'pageview');
+    ga('create', 'UA-51767927-1', 'cmucreatelab.org');
+    ga('send', 'pageview');
 
-      var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1, p: 0};
-      var colorPalette = [
-      [[165,0,38],[215,48,39],[244,109,67],[253,174,97],[254,224,144],[255,255,191],[224,243,248],[171,217,233],[116,173,209],[69,117,180],[49,54,149]],
-      [[165,0,38],[215,48,39],[244,109,67],[253,174,97],[254,224,139],[255,255,191],[217,239,139],[166,217,106],[102,189,99],[26,152,80],[0,104,55]],
-      [[64,0,75],[118,42,131],[153,112,171],[194,165,207],[231,212,232],[247,247,247],[217,240,211],[166,219,160],[90,174,97],[27,120,55],[0,68,27]],
-      [[142,1,82],[197,27,125],[222,119,174],[241,182,218],[253,224,239],[247,247,247],[230,245,208],[184,225,134],[127,188,65],[77,146,33],[39,100,25]],
-      [[166,206,227],[31,120,180],[178,223,138],[51,160,44],[251,154,153],[227,26,28],[253,191,111],[255,127,0],[202,178,214],[106,61,154],[255,255,153],[177,89,40]],
-      [[255,255,217],[237,248,177],[199,233,180],[127,205,187],[65,182,196],[29,145,192],[34,94,168],[37,52,148],[8,29,88]],
-      [[255,255,255],[240,240,240],[217,217,217],[189,189,189],[150,150,150],[115,115,115],[82,82,82],[37,37,37],[0,0,0]],
-      [[247,252,253],[229,245,249],[204,236,230],[153,216,201],[102,194,164],[65,174,118],[35,139,69],[0,109,44],[0,68,27]],
-      [[255,255,204],[255,237,160],[254,217,118],[254,178,76],[253,141,60],[252,78,42],[227,26,28],[189,0,38],[128,0,38]]
-      ];
-      var x, y, z, r;
-      var dataLoaded = false;
+    var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1, p: 0};
+    var colorPalette = [
+    [[165,0,38],[215,48,39],[244,109,67],[253,174,97],[254,224,144],[255,255,191],[224,243,248],[171,217,233],[116,173,209],[69,117,180],[49,54,149]],
+    [[165,0,38],[215,48,39],[244,109,67],[253,174,97],[254,224,139],[255,255,191],[217,239,139],[166,217,106],[102,189,99],[26,152,80],[0,104,55]],
+    [[64,0,75],[118,42,131],[153,112,171],[194,165,207],[231,212,232],[247,247,247],[217,240,211],[166,219,160],[90,174,97],[27,120,55],[0,68,27]],
+    [[142,1,82],[197,27,125],[222,119,174],[241,182,218],[253,224,239],[247,247,247],[230,245,208],[184,225,134],[127,188,65],[77,146,33],[39,100,25]],
+    [[166,206,227],[31,120,180],[178,223,138],[51,160,44],[251,154,153],[227,26,28],[253,191,111],[255,127,0],[202,178,214],[106,61,154],[255,255,153],[177,89,40]],
+    [[255,255,217],[237,248,177],[199,233,180],[127,205,187],[65,182,196],[29,145,192],[34,94,168],[37,52,148],[8,29,88]],
+    [[255,255,255],[240,240,240],[217,217,217],[189,189,189],[150,150,150],[115,115,115],[82,82,82],[37,37,37],[0,0,0]],
+    [[247,252,253],[229,245,249],[204,236,230],[153,216,201],[102,194,164],[65,174,118],[35,139,69],[0,109,44],[0,68,27]],
+    [[255,255,204],[255,237,160],[254,217,118],[254,178,76],[253,141,60],[252,78,42],[227,26,28],[189,0,38],[128,0,38]]
+    ];
+    var x, y, z, r;
+    var dataLoaded = false, datasets = [];
 
-      var changePalette = function(p) {
-        mapping.p = p;
-        setPaletteLegend();
-        initialDraw(mapping, x, y, z, r);
+    var changePalette = function(p) {
+      mapping.p = p;
+      setPaletteLegend();
+      initialDraw(mapping, x, y, z, r);
+    }
+
+    var setPaletteRanges = function() {
+      var pr = $('#inputPaletteMax');
+      if (pr.val() == "") pr.val(1);
+      var pm = $('#inputPaletteMid');
+      if (pm.val() == "") pm.val(0);
+      var pl = $('#inputPaletteMin');
+      if (pl.val() == "") pl.val(-1);
+      if (parseFloat(pm.val()) > parseFloat(pr.val())) pm.val(pr.val());
+      if (parseFloat(pl.val()) > parseFloat(pm.val())) pl.val(pm.val());
+      setPaletteRangesVIS(pl.val(), pm.val(), pr.val());
+      setPaletteLegend();
+      initialDraw(mapping, x, y, z, r);
+    }
+
+    var setPaletteLegend = function() {
+      var lW = 52, lH = 200, tW = 37;
+      var newHTML = '<svg width="' + lW + '" height="' + lH + '"> ';
+      var cH = lH / colorPalette[mapping.p].length;
+      for (var i = 0; i < colorPalette[mapping.p].length; i++) {
+        newHTML += '<rect fill="rgb(' + (colorPalette[mapping.p][i][0] * 0xff) + ',' + (colorPalette[mapping.p][i][1] * 0xff) + ',' + (colorPalette[mapping.p][i][2] * 0xff) + ')" y="' + (cH * (colorPalette[mapping.p].length - i - 1)) + '" width="' + (lW - tW) + '" height="' + cH + '"></rect>';
+        newHTML += '<text font-size="15px" fill="black" x="' + (lW - tW + 2) + '" y="' + (cH * (colorPalette[mapping.p].length - i - 1) + 15) + '">';
+        var v = (i >= Math.floor(colorPalette[mapping.p].length/2) ? ((i - Math.floor(colorPalette[mapping.p].length/2)) * (parseFloat($('#inputPaletteMax').val()) - parseFloat($('#inputPaletteMid').val())) / Math.ceil(colorPalette[mapping.p].length/2) + parseFloat($('#inputPaletteMid').val()) ) : (i * (parseFloat($('#inputPaletteMid').val()) - parseFloat($('#inputPaletteMin').val())) / Math.floor(colorPalette[mapping.p].length/2) + (parseFloat($('#inputPaletteMin').val())) ));
+        newHTML += (Math.floor(v*100)/100) + '</text>';
+      }
+      newHTML += ' </svg>';
+      $('#paletteLegend').html(newHTML);
+    }
+
+    function changeCameraName(cameraType) {
+      if (cameraType === "perspective") {
+        $('#cameraDropdown').html('Perspective<span class=\'caret\'></span>');
+      } else {
+        $('#cameraDropdown').html('Ortho<span class=\'caret\'></span>');
+      }
+    }
+
+    function changeDimensionName(dropdownId, dimensionName) {
+      if (dimensionName === undefined) {
+        $('#' + dropdownId).html('NONE <span class="caret"></span>');
+      } else {
+        $('#' + dropdownId).html(dimensionName.substr(0,28) + ' <span class="caret"></span>');
+      }
+    }
+
+    var mapDimension = function(dropdownId, dimensionName, dimensionIndex) {
+      if (dropdownId == "xDimensionDropdown") { mapping.x = dimensionIndex; }
+      else if (dropdownId == "yDimensionDropdown") { mapping.y = dimensionIndex; }
+      else if (dropdownId == "zDimensionDropdown") { mapping.z = dimensionIndex; }
+      else if (dropdownId == "cDimensionDropdown") { mapping.c = dimensionIndex; }
+      else if (dropdownId == "tDimensionDropdown") { mapping.t = dimensionIndex; }
+      changeDimensionName(dropdownId, dimensionName);
+      initialDraw(mapping, x, y, z, r);
+    };
+
+    function loadData(dataindex, callback) {
+      $('#xDimensionDropdown').html('NONE <span class="caret"></span>');
+      $('#yDimensionDropdown').html('NONE <span class="caret"></span>');
+      $('#zDimensionDropdown').html('NONE <span class="caret"></span>');
+      $('#cDimensionDropdown').html('NONE <span class="caret"></span>');
+      $('#tDimensionDropdown').html('NONE <span class="caret"></span>');
+      $('.dimension-mapper').each(function(d) {
+        var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
+        jQuery(this).html(newHTML);
+      });
+      mapping.x = mapping.y = mapping.z = mapping.c = mapping.t = -1;
+      mapping.d = dataindex;
+      initialDraw(mapping, x, y, z, r);
+
+      if (dataindex == -1) {
+        $('#dataSelectorDropdown').html('NONE <span class="caret"></span>');
+        return;
       }
 
-      var setPaletteRanges = function() {
-        var pr = $('#inputPaletteMax');
-        if (pr.val() == "") pr.val(1);
-        var pm = $('#inputPaletteMid');
-        if (pm.val() == "") pm.val(0);
-        var pl = $('#inputPaletteMin');
-        if (pl.val() == "") pl.val(-1);
-        if (parseFloat(pm.val()) > parseFloat(pr.val())) pm.val(pr.val());
-        if (parseFloat(pl.val()) > parseFloat(pm.val())) pl.val(pm.val());
-        setPaletteRangesVIS(pl.val(), pm.val(), pr.val());
-        setPaletteLegend();
-        initialDraw(mapping, x, y, z, r);
-      }
+      dataname = datasets[dataindex].name;
+      datapath = datasets[dataindex].path;
+      datafile = datasets[dataindex].filename;
 
-      var setPaletteLegend = function() {
-        var lW = 52, lH = 200, tW = 37;
-        var newHTML = '<svg width="' + lW + '" height="' + lH + '"> ';
-        var cH = lH / colorPalette[mapping.p].length;
-        for (var i = 0; i < colorPalette[mapping.p].length; i++) {
-          newHTML += '<rect fill="rgb(' + (colorPalette[mapping.p][i][0] * 0xff) + ',' + (colorPalette[mapping.p][i][1] * 0xff) + ',' + (colorPalette[mapping.p][i][2] * 0xff) + ')" y="' + (cH * (colorPalette[mapping.p].length - i - 1)) + '" width="' + (lW - tW) + '" height="' + cH + '"></rect>';
-          newHTML += '<text font-size="15px" fill="black" x="' + (lW - tW + 2) + '" y="' + (cH * (colorPalette[mapping.p].length - i - 1) + 15) + '">';
-          var v = (i >= Math.floor(colorPalette[mapping.p].length/2) ? ((i - Math.floor(colorPalette[mapping.p].length/2)) * (parseFloat($('#inputPaletteMax').val()) - parseFloat($('#inputPaletteMid').val())) / Math.ceil(colorPalette[mapping.p].length/2) + parseFloat($('#inputPaletteMid').val()) ) : (i * (parseFloat($('#inputPaletteMid').val()) - parseFloat($('#inputPaletteMin').val())) / Math.floor(colorPalette[mapping.p].length/2) + (parseFloat($('#inputPaletteMin').val())) ));
-          newHTML += (Math.floor(v*100)/100) + '</text>';
-        }
-        newHTML += ' </svg>';
-        $('#paletteLegend').html(newHTML);
-      }
+      $('#dataSelectorDropdown').html(dataname.substr(0, 27) + ' <span class="caret"></span>');
 
-      function changeCameraName(cameraType) {
-        if (cameraType === "perspective") {
-          $('#cameraDropdown').html('Perspective<span class=\'caret\'></span>');
-        } else {
-          $('#cameraDropdown').html('Ortho<span class=\'caret\'></span>');
-        }
-      }
+      $('#loadAlert').removeClass('hidden');
+      $('#pageContent').append('<div id="overlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
 
-      function changeDimensionName(dropdownId, dimensionName) {
-        if (dimensionName === undefined) {
-          $('#' + dropdownId).html('NONE <span class="caret"></span>');
-        } else {
-          $('#' + dropdownId).html(dimensionName.substr(0,28) + ' <span class="caret"></span>');
-        }
-      }
+      $.getJSON(datapath + datafile, function(metaData) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', datapath + metaData.filename, true);
+        xhr.responseType = 'arraybuffer';
 
-      var mapDimension = function(dropdownId, dimensionName, dimensionIndex) {
-        if (dropdownId == "xDimensionDropdown") { mapping.x = dimensionIndex; }
-        else if (dropdownId == "yDimensionDropdown") { mapping.y = dimensionIndex; }
-        else if (dropdownId == "zDimensionDropdown") { mapping.z = dimensionIndex; }
-        else if (dropdownId == "cDimensionDropdown") { mapping.c = dimensionIndex; }
-        else if (dropdownId == "tDimensionDropdown") { mapping.t = dimensionIndex; }
-        changeDimensionName(dropdownId, dimensionName);
-        initialDraw(mapping, x, y, z, r);
-      };
-
-      var loadData = function(dataname, datapath, datafile, dataindex) {
-        $('#dataSelectorDropdown').html(dataname.substr(0, 27) + ' <span class="caret"></span>');
-        $('#xDimensionDropdown').html('NONE <span class="caret"></span>');
-        $('#yDimensionDropdown').html('NONE <span class="caret"></span>');
-        $('#zDimensionDropdown').html('NONE <span class="caret"></span>');
-        $('#cDimensionDropdown').html('NONE <span class="caret"></span>');
-        $('#tDimensionDropdown').html('NONE <span class="caret"></span>');
-        $('.dimension-mapper').each(function(d) {
-          var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
-          jQuery(this).html(newHTML);
-        });
-        mapping.x = mapping.y = mapping.z = mapping.c = mapping.t = -1;
-        mapping.d = dataindex;
-        initialDraw(mapping, x, y, z, r);
-
-        if (datapath === -1) {
-          return;
-        }
-        $('#loadAlert').removeClass('hidden');
-        $('#pageContent').append('<div id="overlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
-
-        $.getJSON(datapath + datafile, function(metaData) {
-          var xhr = new XMLHttpRequest();
-          xhr.open('GET', datapath + metaData.filename, true);
-          xhr.responseType = 'arraybuffer';
-
-          var totalData = 0;
-          for (var x = 0; x < metaData.byteSchema.length; x++)
+        var totalData = 0;
+        for (var x = 0; x < metaData.byteSchema.length; x++)
           totalData += metaData.byteSchema[x];
-          totalData *= metaData.totalRows;
-          xhr.addEventListener('progress', function(evt) {
-            $('#dataProgressBar').css('width', (100*evt.loaded/totalData)+'%');
-          }, false);
+        totalData *= metaData.totalRows;
+        xhr.addEventListener('progress', function(evt) {
+          $('#dataProgressBar').css('width', (100*evt.loaded/totalData)+'%');
+        }, false);
 
-          xhr.onload = function(e) {
-            var buf = this.response;
+        xhr.onload = function(e) {
+          var buf = this.response;
 
-            $('.dimension-mapper').each(function(d) {
-              var dropdownId = '';
-              if (d == 0) { dropdownId = 'xDimensionDropdown'; }
-              else if (d == 1) { dropdownId = 'yDimensionDropdown'; }
-              else if (d == 2) { dropdownId = 'zDimensionDropdown'; }
-              else if (d == 3) { dropdownId = 'cDimensionDropdown'; }
-              else {dropdownId = 'tDimensionDropdown'; }
-              var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'NONE\',-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
-              metaData.columnNames.forEach(function(e, i, a){
-                newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'' + e + '\',' + i + ');">' + i + ' - ' + e + '</a></li>\n';
-              });
-              jQuery(this).html(newHTML);
-            });
-
-            init($('#drawCanvas'), $('#stat'), buf, metaData, colorPalette);
-            dataLoaded = true;
-            $('#loadAlert').addClass('hidden');
-            $('#dataProgressBar').css('width', '0%');
-            $('#overlay').remove();
-          };
-
-          xhr.send();
-        });
-      }
-
-      function resizePanels() {
-        var winW, winH, scale;
-
-        winW = $(window).width();
-        winH = $(window).height();
-
-        var x = 2.5, y = 800;
-
-        if (winW > winH * x) {
-          scale = winH / y;
-        } else {
-          scale = winW / (x * y);
-        }
-
-        for (var i = 1; i <= 5; i++) {
-          $('#params'+i).css("transform","scale(" + scale + ")");
-        };
-      }
-
-      $(window).resize(resizePanels);
-
-      function setExperiment() {
-
-        if (dataLoaded == false) {
-          $('#generalAlert').addClass('alert-dismissible');
-          $('#generalAlert').removeClass('hidden');
-          $('#generalAlertText').html('<button type="button" class="close" onclick="$(\'#generalAlert\').addClass(\'hidden\');""><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Please first load a dataset');
-          return;
-        }
-
-        if ($('#experimentController').attr('class') === 'glyphicon glyphicon-play') {
-          $('#experimentParams').removeClass('hidden');
-        } else {
-          $('#experimentClose').removeClass('hidden');
-        }
-
-      }
-
-      function startExperiment (userID) {
-
-        var d = new Date();
-        $.ajax({
-          url: '/setLogger', 
-          type: 'POST', 
-          contentType: 'application/json', 
-          data: JSON.stringify({time: d.getTime(), user: userID})}
-          );
-
-        logger = setInterval(function () {logStatus()}, 1000);
-
-        $('#experimentController').toggleClass('glyphicon-play').toggleClass('glyphicon-stop');
-        $('#experimentButtonName').html(' Stop Experiment');
-        $('#experimentButton').toggleClass('btn-info').toggleClass('btn-success');
-      }
-
-      function stopExperiment () {
-        clearInterval(logger);
-
-        $('#experimentController').toggleClass('glyphicon-stop').toggleClass('glyphicon-play');
-        $('#experimentButtonName').html(' Start Experiment');
-        $('#experimentButton').toggleClass('btn-success').toggleClass('btn-info');
-      }
-
-      function getSliderVals () {
-          x = (parseFloat($('#xSlider').attr('data-slider-max')) - XSlider.getValue() + parseFloat($('#xSlider').attr('data-slider-min')))/10;
-          $('#Xindicator').text(x.toFixed(1));
-          y = (parseFloat($('#ySlider').attr('data-slider-max')) - YSlider.getValue() + parseFloat($('#ySlider').attr('data-slider-min')))/10;
-          $('#Yindicator').text(y.toFixed(1));
-          z = (parseFloat($('#zSlider').attr('data-slider-max')) - ZSlider.getValue() + parseFloat($('#zSlider').attr('data-slider-min')))/10;
-          $('#Zindicator').text(z.toFixed(1));
-          r = (parseFloat($('#rSlider').attr('data-slider-max')) - RSlider.getValue() + parseFloat($('#rSlider').attr('data-slider-min')))/100;
-          $('#Rindicator').text(r.toFixed(2));
-        };
-
-      $(document).ready(function(){
-
-        resizePanels();
-
-        // load sliders
-        $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
-
-        var oldX = -100, oldY = -100, oldZ = -100, oldR = -100, oldT = -100;     
-
-        var changed = function() {
-          getSliderVals();
-          if (x != oldX) {
-            updateDraw(x, y, z, r);
-            oldX = x;
-          }
-          if (y != oldY) {
-            updateDraw(x, y, z, r);
-            oldY = y;
-          }
-          if (z != oldZ) {
-            updateDraw(x, y, z, r);
-            oldZ = z;
-          }
-          if (r != oldR) {
-            updateDraw(x, y, z, r);
-            oldR = r;
-          }
-        };
-
-        var changedTime = function() {
-          t = T.getValue();
-          if (t != oldT) {
-            updateCurrentFrame(t, parseFloat($('#tSlider').attr('data-slider-max')));
-            oldT = t;
-          }
-        };
-
-        XSlider = $('#xSlider').slider()
-        .on('slide', changed)
-        .data('slider');
-
-        YSlider = $('#ySlider').slider()
-        .on('slide', changed)
-        .data('slider');
-
-        ZSlider = $('#zSlider').slider()
-        .on('slide', changed)
-        .data('slider');
-
-        RSlider = $('#rSlider').slider()
-        .on('slide', changed)
-        .data('slider');
-
-        var T = $('#tSlider').slider()
-        .on('slide', changedTime)
-        .data('slider');
-
-        getSliderVals();
-
-        // check for WebGL
-        if (!Detector.webgl) {
-          $('#generalAlertText').html( window.WebGLRenderingContext ? [
-        'Your graphics card does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation" style="color:#000">WebGL</a>.<br />',
-        'Find out how to get it <a href="http://get.webgl.org/" style="color:#000">here</a>.'
-      ].join( '\n' ) : [
-        'Your browser does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation" style="color:#000">WebGL</a>.<br/>',
-        'Find out how to get it <a href="http://get.webgl.org/" style="color:#000">here</a>.'
-      ].join( '\n' ) );
-
-          $('#generalAlert').removeClass('hidden');
-          $('#pageContent').append('<div id="overlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
-        }
-
-        // set color palette
-        $('#inputPaletteMax').val(1);
-        $('#inputPaletteMid').val(0);
-        $('#inputPaletteMin').val(-1);
-        var tempPalette = [];
-        for (var p = 0; p < colorPalette.length; p++) {
-          tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p])));
-          tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p].reverse())));
-        }
-        colorPalette = tempPalette;
-        var newHTML = '';
-        var pW = 200, pH = 20;
-        for (var p = 0; p < colorPalette.length; p++) {
-          var cW = pW / colorPalette[p].length;
-          newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="changePalette(' + p + ');">';
-            newHTML += '<svg width="' + pW + '" height="' + pH + '">';
-            for (var c = 0; c < colorPalette[p].length; c++) {
-              newHTML += '<rect fill="rgb(' + colorPalette[p][c][0] + ',' + colorPalette[p][c][1] + ',' + colorPalette[p][c][2] + ')" height="' + pH + '" width="' + cW + '" x="' + (cW*c) + '"> </rect>';
-              colorPalette[p][c][0] /= 0xff;
-              colorPalette[p][c][1] /= 0xff;
-              colorPalette[p][c][2] /= 0xff;
-            }
-            newHTML += '</svg></a></li>';
-        }
-        $('#paletteDropdownItems').html(newHTML);
-        setPaletteLegend();
-
-        // read database metadata
-        $.getJSON('data/datasets.json', function(data) {
-          $('.data-selector').each(function(d) {
-            var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(\'NONE\',-1,-1,-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
-            data.datasets.forEach(function(e, i, a){
-              newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(\'' + e.dataname + '\',\'' + e.path + '\',\'' + e.filename + '\',' + i + ');">' + i + ' - ' + e.dataname + '</a></li>\n';
+          $('.dimension-mapper').each(function(d) {
+            var dropdownId = '';
+            if (d == 0) { dropdownId = 'xDimensionDropdown'; }
+            else if (d == 1) { dropdownId = 'yDimensionDropdown'; }
+            else if (d == 2) { dropdownId = 'zDimensionDropdown'; }
+            else if (d == 3) { dropdownId = 'cDimensionDropdown'; }
+            else {dropdownId = 'tDimensionDropdown'; }
+            var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'NONE\',-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
+            metaData.columnNames.forEach(function(e, i, a){
+              newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="mapDimension(\'' + dropdownId + '\',\'' + e + '\',' + i + ');">' + i + ' - ' + e + '</a></li>\n';
             });
             jQuery(this).html(newHTML);
           });
-        });
+
+          init($('#drawCanvas'), $('#stat'), buf, metaData, colorPalette);
+          dataLoaded = true;
+          $('#loadAlert').addClass('hidden');
+          $('#dataProgressBar').css('width', '0%');
+          $('#overlay').remove();
+          callback(null);
+        };
+
+        xhr.send();
       });
-    </script>
-  </head>
-  <body>
+  }
 
-    <div id="params5">
+  function resizePanels() {
+    var winW, winH, scale;
 
-      <div id="loadAlert" class="alert alert-warning hidden">
-        <h4 class="alert-heading">Loading</h4>
-        Loading data ...
-        <div class="progress">
-          <div id="dataProgressBar" class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
-          </div>
+    winW = $(window).width();
+    winH = $(window).height();
+
+    var x = 2.5, y = 800;
+
+    if (winW > winH * x) {
+      scale = winH / y;
+    } else {
+      scale = winW / (x * y);
+    }
+
+    for (var i = 1; i <= 5; i++) {
+      $('#params'+i).css("transform","scale(" + scale + ")");
+    };
+  }
+
+  $(window).resize(resizePanels);
+
+  function setExperiment() {
+
+    if (dataLoaded == false) {
+      $('#generalAlert').addClass('alert-dismissible');
+      $('#generalAlert').removeClass('hidden');
+      $('#generalAlertText').html('<button type="button" class="close" onclick="$(\'#generalAlert\').addClass(\'hidden\');""><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Please first load a dataset');
+      return;
+    }
+
+    if ($('#experimentController').attr('class') === 'glyphicon glyphicon-play') {
+      $('#experimentParams').removeClass('hidden');
+    } else {
+      $('#experimentClose').removeClass('hidden');
+    }
+
+  }
+
+  function startExperiment (userID) {
+
+    var d = new Date();
+    $.ajax({
+      url: '/setLogger', 
+      type: 'POST', 
+      contentType: 'application/json', 
+      data: JSON.stringify({time: d.getTime(), user: userID})}
+      );
+
+    logger = setInterval(function () {logStatus()}, 1000);
+
+    $('#experimentController').toggleClass('glyphicon-play').toggleClass('glyphicon-stop');
+    $('#experimentButtonName').html(' Stop Experiment');
+    $('#experimentButton').toggleClass('btn-info').toggleClass('btn-success');
+  }
+
+  function stopExperiment () {
+    clearInterval(logger);
+
+    $('#experimentController').toggleClass('glyphicon-stop').toggleClass('glyphicon-play');
+    $('#experimentButtonName').html(' Start Experiment');
+    $('#experimentButton').toggleClass('btn-success').toggleClass('btn-info');
+  }
+
+  function loadHistoryJson (s) {
+    snapshotList = snapshotList || [];
+    snapshotList.push($.parseJSON(s));
+    loadHistory(snapshotList.length-1);
+  }
+
+  function getSliderVals () {
+    x = (parseFloat($('#xSlider').attr('data-slider-max')) - XSlider.getValue() + parseFloat($('#xSlider').attr('data-slider-min')))/10;
+    $('#Xindicator').text(x.toFixed(1));
+    y = (parseFloat($('#ySlider').attr('data-slider-max')) - YSlider.getValue() + parseFloat($('#ySlider').attr('data-slider-min')))/10;
+    $('#Yindicator').text(y.toFixed(1));
+    z = (parseFloat($('#zSlider').attr('data-slider-max')) - ZSlider.getValue() + parseFloat($('#zSlider').attr('data-slider-min')))/10;
+    $('#Zindicator').text(z.toFixed(1));
+    r = (parseFloat($('#rSlider').attr('data-slider-max')) - RSlider.getValue() + parseFloat($('#rSlider').attr('data-slider-min')))/100;
+    $('#Rindicator').text(r.toFixed(2));
+  };
+
+  $(document).ready(function(){
+
+    resizePanels();
+
+    // load sliders
+    $('td').tooltip({'selector': '', 'placement': 'left', container: 'body'});
+
+    var oldX = -100, oldY = -100, oldZ = -100, oldR = -100, oldT = -100;     
+
+    var changed = function() {
+      getSliderVals();
+      if (x != oldX) {
+        updateDraw(x, y, z, r);
+        oldX = x;
+      }
+      if (y != oldY) {
+        updateDraw(x, y, z, r);
+        oldY = y;
+      }
+      if (z != oldZ) {
+        updateDraw(x, y, z, r);
+        oldZ = z;
+      }
+      if (r != oldR) {
+        updateDraw(x, y, z, r);
+        oldR = r;
+      }
+    };
+
+    var changedTime = function() {
+      t = T.getValue();
+      if (t != oldT) {
+        updateCurrentFrame(t, parseFloat($('#tSlider').attr('data-slider-max')));
+        oldT = t;
+      }
+    };
+
+    XSlider = $('#xSlider').slider()
+    .on('slide', changed)
+    .data('slider');
+
+    YSlider = $('#ySlider').slider()
+    .on('slide', changed)
+    .data('slider');
+
+    ZSlider = $('#zSlider').slider()
+    .on('slide', changed)
+    .data('slider');
+
+    RSlider = $('#rSlider').slider()
+    .on('slide', changed)
+    .data('slider');
+
+    var T = $('#tSlider').slider()
+    .on('slide', changedTime)
+    .data('slider');
+
+    getSliderVals();
+
+    // check for WebGL
+    if (!Detector.webgl) {
+      $('#generalAlertText').html( window.WebGLRenderingContext ? [
+        'Your graphics card does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation" style="color:#000">WebGL</a>.<br />',
+        'Find out how to get it <a href="http://get.webgl.org/" style="color:#000">here</a>.'
+        ].join( '\n' ) : [
+        'Your browser does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation" style="color:#000">WebGL</a>.<br/>',
+        'Find out how to get it <a href="http://get.webgl.org/" style="color:#000">here</a>.'
+        ].join( '\n' ) );
+
+      $('#generalAlert').removeClass('hidden');
+      $('#pageContent').append('<div id="overlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
+    }
+
+    // set color palette
+    $('#inputPaletteMax').val(1);
+    $('#inputPaletteMid').val(0);
+    $('#inputPaletteMin').val(-1);
+    var tempPalette = [];
+    for (var p = 0; p < colorPalette.length; p++) {
+      tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p])));
+      tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p].reverse())));
+    }
+    colorPalette = tempPalette;
+    var newHTML = '';
+    var pW = 200, pH = 20;
+    for (var p = 0; p < colorPalette.length; p++) {
+      var cW = pW / colorPalette[p].length;
+      newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="changePalette(' + p + ');">';
+      newHTML += '<svg width="' + pW + '" height="' + pH + '">';
+      for (var c = 0; c < colorPalette[p].length; c++) {
+        newHTML += '<rect fill="rgb(' + colorPalette[p][c][0] + ',' + colorPalette[p][c][1] + ',' + colorPalette[p][c][2] + ')" height="' + pH + '" width="' + cW + '" x="' + (cW*c) + '"> </rect>';
+        colorPalette[p][c][0] /= 0xff;
+        colorPalette[p][c][1] /= 0xff;
+        colorPalette[p][c][2] /= 0xff;
+      }
+      newHTML += '</svg></a></li>';
+    }
+    $('#paletteDropdownItems').html(newHTML);
+    setPaletteLegend();
+
+    // read database metadata
+    $.getJSON('data/datasets.json', function(data) {
+      $('.data-selector').each(function(d) {
+        var newHTML = '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(-1);">NONE</a></li>\n<li role="presentation" class="divider"></li>\n';
+        data.datasets.forEach(function(e, i, a){
+          datasets.push({'name': e.dataname, 'path': e.path, 'filename': e.filename, 'index': i});
+          newHTML += '<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadData(' + i + ');">' + i + ' - ' + e.dataname + '</a></li>\n';
+        });
+        jQuery(this).html(newHTML);
+      });
+    });
+  });
+
+</script>
+</head>
+<body>
+
+  <div id="params5">
+
+    <div id="loadAlert" class="alert alert-warning hidden">
+      <h4 class="alert-heading">Loading</h4>
+      Loading data ...
+      <div class="progress">
+        <div id="dataProgressBar" class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
         </div>
       </div>
-
-      <div id="generalAlert" class="alert alert-danger hidden">
-        <h4 class="alert-heading">Error</h4>
-        <div id="generalAlertText"></div>
-      </div>
-
-      <div id="experimentParams" class="panel panel-warning hidden">
-        <div class="panel-heading">
-          <h3 class="panel-title">Experiment Parameters
-          <button type="button" class="close" onclick="$('#experimentParams').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-          </h3>
-        </div>
-        <div class="input-group">
-          <span class="input-group-addon">User ID: </span>
-          <input type="text" class="form-control" placeholder="ID" id="userID">
-          <span class="input-group-btn">
-          <button class="btn btn-default" type="button" onclick="if($('#userID').val()){$('#experimentParams').addClass('hidden');startExperiment($('#userID').val());}">Submit</button>
-          </span>
-        </div>
-      </div>
-
-      <div id="experimentClose" class="panel panel-danger hidden">
-        <div class="panel-heading">
-          <h3 class="panel-title">Warning!</h3>
-        </div>
-        <b>Are you sure you want to stop the experiment?</b>
-        <button class="btn btn-danger" type="button" onclick="$('#experimentClose').addClass('hidden');stopExperiment();">YES</button>
-        <button class="btn btn-success" type="button" onclick="$('#experimentClose').addClass('hidden');">NO</button>
-      </div>
-
     </div>
 
-    <div id="pageContent">
+    <div id="generalAlert" class="alert alert-danger hidden">
+      <h4 class="alert-heading">Error</h4>
+      <div id="generalAlertText"></div>
+    </div>
 
-      <div id="stat"></div>
-      <div id="drawCanvas"></div>
+    <div id="experimentParams" class="panel panel-warning hidden">
+      <div class="panel-heading">
+        <h3 class="panel-title">Experiment Parameters
+          <button type="button" class="close" onclick="$('#experimentParams').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        </h3>
+      </div>
+      <div class="input-group">
+        <span class="input-group-addon">User ID: </span>
+        <input type="text" class="form-control" placeholder="ID" id="userID">
+        <span class="input-group-btn">
+          <button class="btn btn-default" type="button" onclick="if($('#userID').val()){$('#experimentParams').addClass('hidden');startExperiment($('#userID').val());}">Submit</button>
+        </span>
+      </div>
+    </div>
 
-      <div id="params4">
-        <div class="panel panel-info">
-          <div class="panel-heading">
-            <h3 class="panel-title">Time Slider <span id="Tindicator"></span></h3>
-          </div>
-          <ul class="nav nav-pills">
-            <li>
+    <div id="experimentClose" class="panel panel-danger hidden">
+      <div class="panel-heading">
+        <h3 class="panel-title">Warning!</h3>
+      </div>
+      <b>Are you sure you want to stop the experiment?</b>
+      <button class="btn btn-danger" type="button" onclick="$('#experimentClose').addClass('hidden');stopExperiment();">YES</button>
+      <button class="btn btn-success" type="button" onclick="$('#experimentClose').addClass('hidden');">NO</button>
+    </div>
+
+    <div id="loadHistoryParams" class="panel panel-warning hidden">
+      <div class="panel-heading">
+        <h3 class="panel-title">Load Snapshot
+          <button type="button" class="close" onclick="$('#loadHistoryParams').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        </h3>
+      </div>
+      <div class="input-group">
+        <span class="input-group-addon">JSON: </span>
+        <input type="text" class="form-control" id="historyJSONInput">
+        <span class="input-group-btn">
+          <button class="btn btn-default" type="button" onclick="if($('#historyJSONInput').val()){$('#loadHistoryParams').addClass('hidden');loadHistoryJson($('#historyJSONInput').val());}">Submit</button>
+        </span>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="pageContent">
+
+    <div id="stat"></div>
+    <div id="drawCanvas"></div>
+
+    <div id="params4">
+      <div class="panel panel-info">
+        <div class="panel-heading">
+          <h3 class="panel-title">Time Slider <span id="Tindicator"></span></h3>
+        </div>
+        <ul class="nav nav-pills">
+          <li>
             <button type="button" class="btn btn-primary btnblock" onclick="setTimeController(false);">
               <span id="timeController" class="glyphicon glyphicon-play"></span>
             </button>
-            </li>
-            <li>
+          </li>
+          <li>
             <ul>
               <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="10" data-slider-step="0.1" data-slider-value="1" id="tSlider" data-slider-id="TS" data-slider-tooltip="hide" data-slider-selection="before">
             </ul>
-            </li>
-          </ul>
-        </div>
+          </li>
+        </ul>
       </div>
+    </div>
 
-      <div id="params3">
-        <div class="panel panel-info">
-          <div class="panel-heading">
-            <h3 class="panel-title">Dimension Mapping</h3>
-          </div>
-          <ul class="nav nav-pills">
+    <div id="params3">
+      <div class="panel panel-info">
+        <div class="panel-heading">
+          <h3 class="panel-title">Dimension Mapping</h3>
+        </div>
+        <ul class="nav nav-pills">
 
-            <li>
+          <li>
             <button type="button" class="btn btn-default btnblock" disabled>Data: </button>
-            </li>
-            <li class="dropdown">
+          </li>
+          <li class="dropdown">
             <a id="dataSelectorDropdown" role="button" data-toggle="dropdown" href="#">
               NONE
               <span class="caret"></span>
             </a>
             <ul class="dropdown-menu data-selector" role="menu" aria-labelledby="dataSelectorDropdown">
             </ul>
-            </li>
+          </li>
 
-            <li>
+          <li>
             <button type="button" class="btn btn-danger btnblock" disabled>X: </button>
-            </li>
-            <li class="dropdown">
+          </li>
+          <li class="dropdown">
             <a id="xDimensionDropdown" role="button" data-toggle="dropdown" href="#">
               NONE
               <span class="caret"></span>
             </a>
             <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="xDimensionDropdown">
             </ul>
-            </li>
+          </li>
 
-            <li> 
+          <li> 
             <button type="button" class="btn btn-success btnblock" disabled>Y: </button>
-            </li>
-            <li class="dropdown">
+          </li>
+          <li class="dropdown">
             <a id="yDimensionDropdown" role="button" data-toggle="dropdown" href="#">
               NONE
               <span class="caret"></span>
             </a>
             <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="yDimensionDropdown">
             </ul>
-            </li>
+          </li>
 
-            <li>
+          <li>
             <button type="button" class="btn btn-primary btnblock" disabled>Z: </button>
-            </li>
-            <li class="dropdown">
+          </li>
+          <li class="dropdown">
             <a id="zDimensionDropdown" role="button" data-toggle="dropdown" href="#">
               NONE
               <span class="caret"></span>
             </a>
             <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="zDimensionDropdown">
             </ul>
-            </li>
+          </li>
 
-            <li>
+          <li>
             <button type="button" class="btn btn-warning btnblock" disabled>Color: </button>
-            </li>
-            <li class="dropdown">
+          </li>
+          <li class="dropdown">
             <a id="cDimensionDropdown" role="button" data-toggle="dropdown" href="#">
               NONE
               <span class="caret"></span>
             </a>
             <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="cDimensionDropdown">
             </ul>
-            </li>
+          </li>
 
-            <li>
+          <li>
             <button type="button" class="btn btn-info btnblock" disabled>Time: </button>
-            </li>
-            <li class="dropdown">
+          </li>
+          <li class="dropdown">
             <a id="tDimensionDropdown" role="button" data-toggle="dropdown" href="#">
               NONE
               <span class="caret"></span>
             </a>
             <ul class="dropdown-menu dimension-mapper" role="menu" aria-labelledby="tDimensionDropdown">
             </ul>
-            </li>
+          </li>
 
-          </ul>
+        </ul>
+      </div>
+    </div>
+
+    <div id="params1">
+
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Parameters</h3>
+        </div>
+        <table class="table tablenoborder">
+          <tr>
+            <td id="Xindicator"></td>
+            <td id="Yindicator"></td>
+            <td id="Zindicator"></td>
+            <td id="Rindicator"></td>
+          </tr>
+          <tr>
+            <td>
+              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="xSlider" data-slider-id="XS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+            </td>
+            <td>
+              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="ySlider" data-slider-id="YS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+            </td>
+            <td>
+              <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+            </td>
+            <td>
+              <input type="text" class="span2" value="" data-slider-min="5" data-slider-max="100" data-slider-step="1" data-slider-value="100" id="rSlider" data-slider-id="RS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
+            </td>
+          </tr>
+          <tr>
+            <td data-toggle="tooltip" title="Scale in X">X</td>
+            <td data-toggle="tooltip" title="Scale in Y">Y</td>
+            <td data-toggle="tooltop" title="Scale in Z">Z</td>
+            <td data-toggle="tooltip" title="Sphere Radius">R</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="panel panel-info" id="panelHistory">
+        <div class="panel-heading">
+          <h3 class="panel-title">History</h3>
+        </div>
+        <table class="table tablenoborder">
+          <tr>
+            <td>
+              <button type="button" id="saveViewButton" class="btn btn-primary btn-block" onclick="saveHistory();">Bookmark</button>
+            </td>
+            <td>
+              <button type="button" id="loadViewButton" class="btn btn-success btn-block" onclick="$('#loadHistoryParams').removeClass('hidden');">Load</button>
+            </td>
+          </tr>
+        </table>
+        <hr>
+        <div id="historyList">
         </div>
       </div>
 
-      <div id="params1">
-
-        <div class="panel panel-primary">
-          <div class="panel-heading">
-            <h3 class="panel-title">Parameters</h3>
-          </div>
-          <table class="table tablenoborder">
-            <tr>
-              <td id="Xindicator"></td>
-              <td id="Yindicator"></td>
-              <td id="Zindicator"></td>
-              <td id="Rindicator"></td>
-            </tr>
-            <tr>
-              <td>
-                <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="xSlider" data-slider-id="XS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
-              </td>
-              <td>
-                <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="ySlider" data-slider-id="YS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
-              </td>
-              <td>
-                <input type="text" class="span2" value="" data-slider-min="1" data-slider-max="1000" data-slider-step="1" data-slider-value="1" id="zSlider" data-slider-id="ZS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
-              </td>
-              <td>
-                <input type="text" class="span2" value="" data-slider-min="5" data-slider-max="100" data-slider-step="1" data-slider-value="100" id="rSlider" data-slider-id="RS" data-slider-orientation="vertical" data-slider-tooltip="hide" data-slider-selection="after">
-              </td>
-            </tr>
-            <tr>
-              <td data-toggle="tooltip" title="Scale in X">X</td>
-              <td data-toggle="tooltip" title="Scale in Y">Y</td>
-              <td data-toggle="tooltop" title="Scale in Z">Z</td>
-              <td data-toggle="tooltip" title="Sphere Radius">R</td>
-            </tr>
-          </table>
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Experiment</h3>
         </div>
-
-        <div class="panel panel-info" id="panelHistory">
-          <div class="panel-heading">
-            <h3 class="panel-title">History</h3>
-          </div>
-          <button type="button" id="saveViewButton" class="btn btn-primary btn-block" onclick="saveHistory();">Save</button>
-          <hr>
-          <div id="historyList">
-          </div>
-        </div>
-
-        <div class="panel panel-primary">
-          <div class="panel-heading">
-            <h3 class="panel-title">Experiment</h3>
-          </div>
-          <button type="button" id="experimentButton" class="btn btn-success btn-block" onclick="setExperiment();"><span id="experimentController" class="glyphicon glyphicon-play"></span><span id="experimentButtonName"> Start Experiment</span></button>
-        </div>
-
+        <button type="button" id="experimentButton" class="btn btn-success btn-block" onclick="setExperiment();"><span id="experimentController" class="glyphicon glyphicon-play"></span><span id="experimentButtonName"> Start Experiment</span></button>
       </div>
 
-      <div id="params2">
-        <div class="panel panel-primary">
-          <div class="panel-heading">
-            <h3 class="panel-title">Colors</h3>
-          </div>
-          <table class="table tablenoborder">
-            <tr>
-              <td>
-                <div class="input-group">
-                  <b>Max: </b>
-                  <input style="width:70px" type="number" class="form-control" id="inputPaletteMax" value="1" step="0.1">
-                </div>
-              </td>
-              <td colspan="1" rowspan="3" id="paletteLegend"></td>
-            </tr>
-            <tr>
-              <td>
-                <div class="input-group">
-                  <b>Mid: </b>
-                  <input style="width:70px" type="number" class="form-control" id="inputPaletteMid" value="0" step="0.1">
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="input-group">
-                  <b>Min: </b>
-                  <input style="width:70px" type="number" class="form-control" id="inputPaletteMin" value="-1" step="0.1">
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <button type="button" class="btn btn-primary btn-block" onclick="setPaletteRanges();">Set</button>
-              </td>
-              <td>
-                <ul class="nav nav-pills">
-                  <li class="dropdown">
+    </div>
+
+    <div id="params2">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Colors</h3>
+        </div>
+        <table class="table tablenoborder">
+          <tr>
+            <td>
+              <div class="input-group">
+                <b>Max: </b>
+                <input style="width:70px" type="number" class="form-control" id="inputPaletteMax" value="1" step="0.1">
+              </div>
+            </td>
+            <td colspan="1" rowspan="3" id="paletteLegend"></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="input-group">
+                <b>Mid: </b>
+                <input style="width:70px" type="number" class="form-control" id="inputPaletteMid" value="0" step="0.1">
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="input-group">
+                <b>Min: </b>
+                <input style="width:70px" type="number" class="form-control" id="inputPaletteMin" value="-1" step="0.1">
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <button type="button" class="btn btn-primary btn-block" onclick="setPaletteRanges();">Set</button>
+            </td>
+            <td>
+              <ul class="nav nav-pills">
+                <li class="dropdown">
                   <button type="button" class="btn btn-primary btnblock" data-toggle="dropdown" id="paletteDropdown">Palette <span class="caret"></span></button>
                   <ul class="dropdown-menu" role="menu" aria-labelledby="paletteDropdown" id="paletteDropdownItems">
                   </ul>
-                  </li>
-                </ul>
-              </td>
-            </tr>
-          </table>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        </table>
 
+      </div>
+
+      <div class="panel panel-info">
+        <div class="panel-heading">
+          <h3 class="panel-title">Camera</h3>
         </div>
 
-        <div class="panel panel-info">
-          <div class="panel-heading">
-            <h3 class="panel-title">Camera</h3>
-          </div>
-
-          <table class="table tablenoborder">
-            <tr>
-              <td style="width: 33% !important">
-                <button type="button" class="btn btn-info btnblock" disabled>Type</button>
-              </td>
-              <td colspan="2" rowspan="1" id="cameraPerspectiveHeader">
-                <ul class="nav nav-pills">
-                  <li class="dropdown">
+        <table class="table tablenoborder">
+          <tr>
+            <td style="width: 33% !important">
+              <button type="button" class="btn btn-info btnblock" disabled>Type</button>
+            </td>
+            <td colspan="2" rowspan="1" id="cameraPerspectiveHeader">
+              <ul class="nav nav-pills">
+                <li class="dropdown">
                   <a style="width: 50% !important" id="cameraDropdown" role="button" data-toggle="dropdown" href="#">Perspective<span class="caret"></span></a>
                   <ul id="cameraDropdownItems" class="dropdown-menu" role="menu" aria-labelledby="cameraDropdown">
                     <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="changeCameraName('perspective');setCameraType('perspective');">Perspective</a></li>
                     <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="changeCameraName('orthographic');setCameraType('orthographic');">Orthographic</a></li>
                   </ul>
-                  </li>
-                </ul>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <button type="button" class="btn btn-danger btn-block" onclick="setCameraX();"><span class="glyphicon glyphicon-eye-open"></span> X</button>
-              </td>
-              <td>
-                <button type="button" class="btn btn-success btn-block" onclick="setCameraY();"><span class="glyphicon glyphicon-eye-open"></span> Y</button>
-              </td>
-              <td>
-                <button type="button" class="btn btn-primary btn-block" onclick="setCameraZ();"><span class="glyphicon glyphicon-eye-open"></span> Z</button>
-              </td>
-            </tr>
-          </table>
-        </div>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <button type="button" class="btn btn-danger btn-block" onclick="setCameraX();"><span class="glyphicon glyphicon-eye-open"></span> X</button>
+            </td>
+            <td>
+              <button type="button" class="btn btn-success btn-block" onclick="setCameraY();"><span class="glyphicon glyphicon-eye-open"></span> Y</button>
+            </td>
+            <td>
+              <button type="button" class="btn btn-primary btn-block" onclick="setCameraZ();"><span class="glyphicon glyphicon-eye-open"></span> Z</button>
+            </td>
+          </tr>
+        </table>
+      </div>
 
-        <div class="panel panel-primary">
-          <div class="panel-heading">
-            <h3 class="panel-title">Settings</h3>
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Settings</h3>
+        </div>
+        <form>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="checkboxGeoLayer" onclick="setGeoLayer(this.checked);">
+              Geo Layer
+            </label>
           </div>
-          <form>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" id="checkboxGeoLayer" onclick="setGeoLayer(this.checked);">
-                Geo Layer
-              </label>
-            </div>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" id="checkboxAxisHelper" onclick="setAxisHelper(this.checked);" checked>
-                Axis Helper
-              </label>
-            </div>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" id="checkboxGridXY" onclick="setGridXY(this.checked);">
-                Grid XY Helper
-              </label>
-            </div>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" id="checkboxGridXZ" onclick="setGridXZ(this.checked);">
-                Grid XZ Helper
-              </label>
-            </div>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" id="checkboxGridYZ" onclick="setGridYZ(this.checked);">
-                Grid YZ Helper
-              </label>
-            </div>
-          </form>
-        </div>
-
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="checkboxAxisHelper" onclick="setAxisHelper(this.checked);" checked>
+              Axis Helper
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="checkboxGridXY" onclick="setGridXY(this.checked);">
+              Grid XY Helper
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="checkboxGridXZ" onclick="setGridXZ(this.checked);">
+              Grid XZ Helper
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="checkboxGridYZ" onclick="setGridYZ(this.checked);">
+              Grid YZ Helper
+            </label>
+          </div>
+        </form>
       </div>
 
     </div>
-  </body>
+
+  </div>
+</body>
 </html>

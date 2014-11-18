@@ -770,13 +770,25 @@ function saveHistory() {
 }
 
 function loadHistory(i) {
-  var status = snapshotList[i];
-
   // check for data dimension consistency
-  if (status.datasetIndex != mapping.d) {
-    console.log("error - saved dataset is different than loaded one");
-    return;
+  if (snapshotList[i].datasetIndex != mapping.d) {
+    async.series([
+      function (callback) {
+        loadData(snapshotList[i].datasetIndex, callback);
+      },
+      function (callback) {
+        loadHistoryAsync(i);
+        callback(null);
+      }
+      ]);
+  } else {
+    loadHistoryAsync(i);
   }
+}
+
+function loadHistoryAsync(i) {
+
+  var status = snapshotList[i];
 
   // redraw the picture based on saved parameters
   var Mapping = mapping;
