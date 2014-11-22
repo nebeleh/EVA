@@ -125,11 +125,11 @@ body {
   margin-bottom: 5px !important;
 }
 #panelHistory {
-  height: 420px;
+  height: 520px;
 }
 #historyList {
   overflow-y: scroll;
-  height: 160px;
+  height: 210px;
 }
 .tooltip-inner {
     max-width: 800px;
