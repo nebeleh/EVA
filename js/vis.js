@@ -288,6 +288,7 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   setGridXZ(false);
   setGridYZ(false);
   setGeoLayer(false);
+  setStatLayer(false);
 
   // start animating
   updateInfo();
@@ -694,6 +695,16 @@ function setGeoLayer(s) {
   }
 }
 
+function setStatLayer (s) {
+  if (s) {
+    $("#checkboxStat").prop("checked", true);
+    $("#stat").removeClass("hidden");
+  } else {
+    $("#checkboxStat").prop("checked", false);
+    $("#stat").addClass("hidden");
+  }
+}
+
 function setPaletteRangesVIS(l, m, h) {
   maxC = parseFloat(h);
   midC = parseFloat(m);
@@ -763,10 +774,24 @@ function saveHistory() {
   snapshotList.push(takeSnapshot());
 
   var currentHistory = $('#historyList').html();
-  currentHistory = '<img style="border:1px solid black;" width="170" height="80" id="snapshotID' + (snapshotList.length-1) + '" onclick="loadHistory(' + (snapshotList.length-1) + ');"><hr />' + currentHistory;
-  $('#historyList').html(currentHistory);
+  var snapshotID = "snapshotID" + (snapshotList.length-1);
+  var lastElement = snapshotList[snapshotList.length-1];
+  var snapshotDimensions = "<p align='left'>" +
+                            "Data: " + datasets[lastElement.datasetIndex].name + "<br />" +
+                            "X: " + ((lastElement.dimensionXIndex == -1) ? "none" : metaData.columnNames[lastElement.dimensionXIndex]) + "<br />" +
+                            "Y: " + ((lastElement.dimensionYIndex == -1) ? "none" : metaData.columnNames[lastElement.dimensionYIndex]) + "<br />" +
+                            "Z: " + ((lastElement.dimensionZIndex == -1) ? "none" : metaData.columnNames[lastElement.dimensionZIndex]) + "<br />" +
+                            "Color: " + ((lastElement.dimensionCIndex == -1) ? "none" : metaData.columnNames[lastElement.dimensionCIndex]) + "<br />" +
+                            "Time: " + ((lastElement.dimensionTIndex == -1) ? "none" : metaData.columnNames[lastElement.dimensionTIndex]) + "<br />" +
+                            "</p>";
 
-  $('#snapshotID' + (snapshotList.length-1)).attr('src', renderer.domElement.toDataURL());
+  currentHistory = '<div id="' + snapshotID + 'div"><img style="border:1px solid black;" width="170" height="80" id="' + snapshotID + '" onclick="loadHistory(' + (snapshotList.length-1) + ');" data-toggle="tooltip" title="' + snapshotDimensions + '"><button style="position:relative;right:25px" type="button" class="close" onclick="$(\'#' + snapshotID + 'div\').addClass(\'hidden\');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button><hr /></div>' + currentHistory;
+  $('#historyList').html(currentHistory);
+  $('img').tooltip({'selector': '', 'placement': 'left', container: 'body', html: true});
+
+  
+
+  $('#' + snapshotID).attr('src', renderer.domElement.toDataURL());
 }
 
 function loadHistory(i) {

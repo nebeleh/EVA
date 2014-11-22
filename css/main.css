@@ -51,7 +51,7 @@ body {
   z-index: 50;
 }
 #XS, #YS, #ZS, #RS {
-  height: 170px;
+  height: 100px;
 }
 #XS .slider-handle {
   background: red;
@@ -91,6 +91,8 @@ body {
   padding-top: 10px !important;
   padding-bottom: 0px !important;
   text-align: center !important;
+  padding-left: 3px !important;
+  padding-right: 3px !important;
 }
 .tablenoborder {
   table-layout: fixed !important;
@@ -123,9 +125,12 @@ body {
   margin-bottom: 5px !important;
 }
 #panelHistory {
-  height: 310px;
+  height: 420px;
 }
 #historyList {
   overflow-y: scroll;
-  height: 55%;
+  height: 160px;
+}
+.tooltip-inner {
+    max-width: 800px;
 }

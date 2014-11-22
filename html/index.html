@@ -167,7 +167,7 @@
           $('#loadAlert').addClass('hidden');
           $('#dataProgressBar').css('width', '0%');
           $('#overlay').remove();
-          callback(null);
+          if (callback !== undefined) callback(null);
         };
 
         xhr.send();
@@ -237,10 +237,67 @@
     $('#experimentButton').toggleClass('btn-success').toggleClass('btn-info');
   }
 
-  function loadHistoryJson (s) {
+  function loadSnapshotJson (s) {
     snapshotList = snapshotList || [];
     snapshotList.push($.parseJSON(s));
     loadHistory(snapshotList.length-1);
+  }
+
+  function reset () {
+    $('#xSlider').data('slider').setValue(1);
+    $('#ySlider').data('slider').setValue(1);
+    $('#zSlider').data('slider').setValue(1);
+    $('#rSlider').data('slider').setValue(100);
+    getSliderVals();
+
+    mapping.x = -1;
+    mapping.y = -1;
+    mapping.z = -1;
+    mapping.c = -1;
+    mapping.t = -1;
+    mapping.p = 0;
+
+    $('#inputPaletteMax').val(1);
+    $('#inputPaletteMid').val(0);
+    $('#inputPaletteMin').val(-1);
+    setPaletteLegend();
+
+    snapshotList = snapshotList || [];
+    if (snapshotList.length > 0) {
+      for (var i = 0; i < snapshotList.length; i++) {
+        var tid = "#snapshotID" + i + "div";
+        $(tid).remove();
+      }
+      snapshotList = [];
+    }
+
+    if (dataLoaded) {
+      initialDraw(mapping, x, y, z, r);
+      changeDimensionName('xDimensionDropdown');
+      changeDimensionName('zDimensionDropdown');
+      changeDimensionName('yDimensionDropdown');
+      changeDimensionName('cDimensionDropdown');
+      changeDimensionName('tDimensionDropdown');
+
+      setCameraType("perspective");
+      changeCameraName("perspective");
+
+      setAxisHelper(true);
+      setGridXY(false);
+      setGridXZ(false);
+      setGridYZ(false);
+      setGeoLayer(false);
+      setStatLayer(false);
+    }
+  }
+
+  function saveSnapshotJson () {
+    if (dataLoaded == false) {
+      $('#saveSnapshotToJsonOutput').val('Please load a dataset.')
+      return;
+    }
+
+    $('#saveSnapshotToJsonOutput').val(JSON.stringify(takeSnapshot())).focus().select();
   }
 
   function getSliderVals () {
@@ -411,26 +468,35 @@
       <button class="btn btn-success" type="button" onclick="$('#experimentClose').addClass('hidden');">NO</button>
     </div>
 
-    <div id="loadHistoryParams" class="panel panel-warning hidden">
+    <div id="loadSnapshotFromJSON" class="panel panel-warning hidden">
       <div class="panel-heading">
         <h3 class="panel-title">Load Snapshot
-          <button type="button" class="close" onclick="$('#loadHistoryParams').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+          <button type="button" class="close" onclick="$('#loadSnapshotFromJSON').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
         </h3>
       </div>
       <div class="input-group">
         <span class="input-group-addon">JSON: </span>
         <input type="text" class="form-control" id="historyJSONInput">
         <span class="input-group-btn">
-          <button class="btn btn-default" type="button" onclick="if($('#historyJSONInput').val()){$('#loadHistoryParams').addClass('hidden');loadHistoryJson($('#historyJSONInput').val());}">Submit</button>
+          <button class="btn btn-default" type="button" onclick="if($('#historyJSONInput').val()){$('#loadSnapshotFromJSON').addClass('hidden');loadSnapshotJson($('#historyJSONInput').val());}">Submit</button>
         </span>
       </div>
+    </div>
+
+    <div id="saveSnapshotToJSON" class="panel panel-success hidden">
+      <div class="panel-heading">
+        <h3 class="panel-title">Save Snapshot
+        <button type="button" class="close" onclick="$('#saveSnapshotToJSON').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        </h3>
+      </div>
+      <textarea class="form-control-static" rows="12" style="width:100%;resize:none" id="saveSnapshotToJsonOutput" readonly></textarea>
     </div>
 
   </div>
 
   <div id="pageContent">
 
-    <div id="stat"></div>
+    <div id="stat" class="hidden"></div>
     <div id="drawCanvas"></div>
 
     <div id="params4">
@@ -540,7 +606,7 @@
 
       <div class="panel panel-primary">
         <div class="panel-heading">
-          <h3 class="panel-title">Parameters</h3>
+          <h3 class="panel-title">Scales</h3>
         </div>
         <table class="table tablenoborder">
           <tr>
@@ -574,7 +640,7 @@
 
       <div class="panel panel-info" id="panelHistory">
         <div class="panel-heading">
-          <h3 class="panel-title">History</h3>
+          <h3 class="panel-title">Tools</h3>
         </div>
         <table class="table tablenoborder">
           <tr>
@@ -582,11 +648,27 @@
               <button type="button" id="saveViewButton" class="btn btn-primary btn-block" onclick="saveHistory();">Bookmark</button>
             </td>
             <td>
-              <button type="button" id="loadViewButton" class="btn btn-success btn-block" onclick="$('#loadHistoryParams').removeClass('hidden');">Load</button>
+              <button type="button" class="btn btn-primary btn-block" onclick="reset();">Reset</button>
+            </td>         
+          </tr>
+          <tr>
+            <td>
+              <button type="button" class="btn btn-info btn-block" onclick="saveSnapshotJson();$('#saveSnapshotToJSON').removeClass('hidden');">Save JSON</button>
+            </td>
+            <td>
+              <button type="button" id="loadViewButton" class="btn btn-info btn-block" onclick="$('#loadSnapshotFromJSON').removeClass('hidden');">Load JSON</button>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <button type="button" class="btn btn-primary btn-block">Share View</button>
+            </td>
+            <td>
+              <button type="button" class="btn btn-primary btn-block">Share History</button>
             </td>
           </tr>
         </table>
-        <hr>
+        <hr />
         <div id="historyList">
         </div>
       </div>
@@ -651,13 +733,13 @@
 
       <div class="panel panel-info">
         <div class="panel-heading">
-          <h3 class="panel-title">Camera</h3>
+          <h3 class="panel-title">View</h3>
         </div>
 
         <table class="table tablenoborder">
           <tr>
             <td style="width: 33% !important">
-              <button type="button" class="btn btn-info btnblock" disabled>Type</button>
+              <button type="button" class="btn btn-info btnblock" disabled>Cam</button>
             </td>
             <td colspan="2" rowspan="1" id="cameraPerspectiveHeader">
               <ul class="nav nav-pills">
@@ -687,7 +769,7 @@
 
       <div class="panel panel-primary">
         <div class="panel-heading">
-          <h3 class="panel-title">Settings</h3>
+          <h3 class="panel-title">Layers</h3>
         </div>
         <form>
           <div class="checkbox">
@@ -718,6 +800,12 @@
             <label>
               <input type="checkbox" id="checkboxGridYZ" onclick="setGridYZ(this.checked);">
               Grid YZ Helper
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="checkboxStat" onclick="setStatLayer(this.checked);">
+              Frame Rate Stat
             </label>
           </div>
         </form>
