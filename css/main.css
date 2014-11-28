@@ -125,7 +125,7 @@ body {
   margin-bottom: 5px !important;
 }
 #panelHistory {
-  height: 520px;
+  height: 400px;
 }
 #historyList {
   overflow-y: scroll;
