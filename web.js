@@ -1,9 +1,15 @@
 var express = require('express');
+var compression = require('compression');
+var bodyParser = require('body-parser');
 var fs = require('fs');
 
 var app = express();
-app.use(express.compress());
-app.use(express.bodyParser());
+app.use(compression());
+app.use(bodyParser.raw());
+
+app.use('/js', express.static(__dirname + '/js'));
+app.use('/css', express.static(__dirname + '/css'));
+app.use('/data', express.static(__dirname + '/data', { maxAge: oneHour}));
 
 var oneHour = 3600000;
 
@@ -22,12 +28,6 @@ app.post('/logger', function (req, res) {
   log.write(JSON.stringify(req.body) + '\n');
   res.send('');
 });
-
-app.configure(function() {
-  app.use('/js', express.static(__dirname + '/js'));
-  app.use('/css', express.static(__dirname + '/css'));
-  app.use('/data', express.static(__dirname + '/data', { maxAge: oneHour}));
-})
 
 var port = process.env.PORT || 8080;
 app.listen(port, function() {
