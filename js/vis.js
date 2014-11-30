@@ -767,11 +767,14 @@ function logStatus() {
     ); 
 }
 
-function saveHistory() {
+function saveHistory(callback) {
   if (mapping.d === undefined || mapping.d == -1) return;
 
   snapshotList = snapshotList || [];
-  snapshotList.push(takeSnapshot());
+  // if loading the history, don't take a snapshot anymore, it is already there
+  if (callback === undefined) {
+    snapshotList.push(takeSnapshot());
+  }
 
   var currentHistory = $('#historyList').html();
   var snapshotID = "snapshotID" + (snapshotList.length-1);
@@ -789,12 +792,27 @@ function saveHistory() {
   $('#historyList').html(currentHistory);
   $('img').tooltip({'selector': '', 'placement': 'left', container: 'body', html: true});
 
-  
-
   $('#' + snapshotID).attr('src', renderer.domElement.toDataURL());
+  if (callback !== undefined) callback(null);
 }
 
-function loadHistory(i) {
+function loadHistoryThenBookmark(i, mainCallback) {
+  async.series([
+    function (callback) {
+      loadHistory(i, callback);
+    },
+    function (callback) {
+      // wait so the renderer can render the new view
+      setTimeout(function() { callback(null); }, 200);
+    },
+    function (callback) {
+      saveHistory(callback);
+    }
+    ],
+    function (err, results) { mainCallback(); });
+}
+
+function loadHistory(i, mainCallback) {
   // check for data dimension consistency
   if (snapshotList[i].datasetIndex != mapping.d) {
     async.series([
@@ -802,16 +820,16 @@ function loadHistory(i) {
         loadData(snapshotList[i].datasetIndex, callback);
       },
       function (callback) {
-        loadHistoryAsync(i);
-        callback(null);
+        loadHistoryAsync(i, callback);
       }
-      ]);
+      ],
+      function (err, results) { mainCallback(); });
   } else {
-    loadHistoryAsync(i);
+    loadHistoryAsync(i, mainCallback);
   }
 }
 
-function loadHistoryAsync(i) {
+function loadHistoryAsync(i, callback) {
 
   var status = snapshotList[i];
 
@@ -865,4 +883,6 @@ function loadHistoryAsync(i) {
   $('#inputPaletteMid').val(status.midColor);
   $('#inputPaletteMin').val(status.minColor);
   setPaletteLegend();
+
+  if (callback !== undefined) callback(null);
 }

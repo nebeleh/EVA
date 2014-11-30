@@ -316,7 +316,7 @@
     if (dataLoaded == false) {
       $('#generalAlert').addClass('alert-dismissible');
       $('#generalAlert').removeClass('hidden');
-      $('#generalAlertText').html('<button type="button" class="close" onclick="$(\'#generalAlert\').addClass(\'hidden\');""><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Please first load a dataset');
+      $('#generalAlertText').html('<button type="button" class="close" onclick="$(\'#generalAlert\').addClass(\'hidden\');""><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Please first load a dataset.');
       return;
     }
 
@@ -326,6 +326,42 @@
       type: 'POST', 
       contentType: 'application/json', 
       data: JSON.stringify(takeSnapshot())})
+    // receive the hash from the server, create the shareable URL and show it to the user
+    .done(function (data) {
+      $('#shareViewPopup').removeClass('hidden');
+      $('#shareViewOutput').val(location.protocol + "//" + location.host + '/?uid=' + data).focus().select();
+    });
+  }
+
+  function shareHistory () {
+    if (dataLoaded == false) {
+      $('#generalAlert').addClass('alert-dismissible');
+      $('#generalAlert').removeClass('hidden');
+      $('#generalAlertText').html('<button type="button" class="close" onclick="$(\'#generalAlert\').addClass(\'hidden\');""><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Please first load a dataset.');
+      return;
+    }
+
+    if (!snapshotList) {
+      $('#generalAlert').addClass('alert-dismissible');
+      $('#generalAlert').removeClass('hidden');
+      $('#generalAlertText').html('<button type="button" class="close" onclick="$(\'#generalAlert\').addClass(\'hidden\');""><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Please first bookmark some views.');
+      return;
+    }
+
+    // go through snapshotList and find all non-hidden ones. send them to server.
+    var d = [];
+
+    for (var i = 0; i < snapshotList.length; i++) {
+      if (!$('#snapshotID' + i + 'div').attr('class')) {
+        d.push(snapshotList[i])
+      }
+    }
+
+    $.ajax({
+      url: '/createShareHistory',
+      type: 'POST', 
+      contentType: 'application/json', 
+      data: JSON.stringify(d)})
     // receive the hash from the server, create the shareable URL and show it to the user
     .done(function (data) {
       $('#shareViewPopup').removeClass('hidden');
@@ -466,7 +502,21 @@
       // receive the hash from the server, create the shareable URL and show it to the user
       .done(function (data) {
         var d = JSON.parse(data);
-        loadSnapshotJson(JSON.stringify(d.snapshot));
+
+        // this is a single view
+        if (d.type == "view") {
+          loadSnapshotJson(JSON.stringify(d.snapshot));
+        }
+        // this is a series of bookmarks
+        else if (d.type == "history") {
+          snapshotList = [];
+          var items = Array.apply(null, {length: d.snapshots.length}).map(Number.call, Number);
+
+          async.eachSeries(items, function (item, callback) {
+            snapshotList.push(d.snapshots[item]);
+            loadHistoryThenBookmark(item, callback);
+          }, function (err) {});
+        }
       });
     };
   });
@@ -541,11 +591,11 @@
 
     <div id="shareViewPopup" class="panel panel-success hidden">
       <div class="panel-heading">
-        <h3 class="panel-title">Share This View URL
+        <h3 class="panel-title">Share
         <button type="button" class="close" onclick="$('#shareViewPopup').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
         </h3>
       </div>
-      <textarea class="form-control-static" rows="1" style="width:100%;resize:none" id="shareViewOutput" readonly></textarea>
+      <textarea class="form-control-static" rows="2" style="width:100%;resize:none" id="shareViewOutput" readonly></textarea>
     </div>
 
   </div>
@@ -726,7 +776,7 @@
               <button type="button" class="btn btn-primary btn-block" onclick="shareView();">Share View</button>
             </td>
             <td>
-              <button type="button" class="btn btn-primary btn-block">Share History</button>
+              <button type="button" class="btn btn-primary btn-block" onclick="shareHistory()">Share History</button>
             </td>
           </tr>
         </table>

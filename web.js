@@ -34,6 +34,17 @@ app.post('/createShareView', function (req, res) {
   res.send(fname);
 });
 
+app.post('/createShareHistory', function (req, res) {
+  var fname = 'history-' + Date.now() + '-' + shortId.generate();
+  var fout = fs.createWriteStream('shares/' + fname, {'flags': 'a'});
+
+  var obj = {type: "history", uid: fname, count: 0, snapshots: req.body};
+
+  fout.write(JSON.stringify(obj));
+
+  res.send(fname);
+});
+
 // share (read): receive a file hash, read the content from share folder and return it
 app.post('/loadShareView', function (req, res) {
   fs.readFile('shares/'+req.body.uid, function (err, buffer) {
