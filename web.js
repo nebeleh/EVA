@@ -30,7 +30,6 @@ app.post('/createShareView', function (req, res) {
   var obj = {type: "view", uid: fname, count: 0, snapshot: req.body};
 
   fout.write(JSON.stringify(obj));
-  fout.close();  
 
   res.send(fname);
 });
@@ -47,7 +46,6 @@ app.post('/loadShareView', function (req, res) {
       obj.count++;
       var fout = fs.createWriteStream('shares/' + obj.uid);
       fout.write(JSON.stringify(obj));
-      fout.close();
 
       // send info to client
       res.send(JSON.stringify(obj));
