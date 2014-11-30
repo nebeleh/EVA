@@ -44,6 +44,16 @@
     var x, y, z, r;
     var dataLoaded = false, datasets = [];
 
+    $.urlParam = function(name){
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results==null){
+           return null;
+        }
+        else{
+           return results[1] || 0;
+        }
+    }
+
     var changePalette = function(p) {
       mapping.p = p;
       setPaletteLegend();
@@ -206,6 +216,7 @@
 
     if ($('#experimentController').attr('class') === 'glyphicon glyphicon-play') {
       $('#experimentParams').removeClass('hidden');
+      $('#userID').focus();
     } else {
       $('#experimentClose').removeClass('hidden');
     }
@@ -299,6 +310,27 @@
     }
 
     $('#saveSnapshotToJsonOutput').val(JSON.stringify(takeSnapshot())).focus().select();
+  }
+
+  function shareView () {
+    if (dataLoaded == false) {
+      $('#generalAlert').addClass('alert-dismissible');
+      $('#generalAlert').removeClass('hidden');
+      $('#generalAlertText').html('<button type="button" class="close" onclick="$(\'#generalAlert\').addClass(\'hidden\');""><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Please first load a dataset');
+      return;
+    }
+
+    // take a snapshot and send it to server and ask the server to create a new file in the share folder
+    $.ajax({
+      url: '/createShareView', 
+      type: 'POST', 
+      contentType: 'application/json', 
+      data: JSON.stringify(takeSnapshot())})
+    // receive the hash from the server, create the shareable URL and show it to the user
+    .done(function (data) {
+      $('#shareViewPopup').removeClass('hidden');
+      $('#shareViewOutput').val(location.protocol + "//" + location.host + '/?uid=' + data).focus().select();
+    });
   }
 
   function getSliderVals () {
@@ -423,6 +455,20 @@
         jQuery(this).html(newHTML);
       });
     });
+
+    // check if this is a shared link, then load the appropriate page
+    if ($.urlParam('uid')) {
+      $.ajax({
+        url: '/loadShareView', 
+        type: 'POST', 
+        contentType: 'application/json', 
+        data: JSON.stringify({'uid': $.urlParam('uid')})})
+      // receive the hash from the server, create the shareable URL and show it to the user
+      .done(function (data) {
+        var d = JSON.parse(data);
+        loadSnapshotJson(JSON.stringify(d.snapshot));
+      });
+    };
   });
 
 </script>
@@ -491,6 +537,15 @@
         </h3>
       </div>
       <textarea class="form-control-static" rows="12" style="width:100%;resize:none" id="saveSnapshotToJsonOutput" readonly></textarea>
+    </div>
+
+    <div id="shareViewPopup" class="panel panel-success hidden">
+      <div class="panel-heading">
+        <h3 class="panel-title">Share This View URL
+        <button type="button" class="close" onclick="$('#shareViewPopup').addClass('hidden');"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        </h3>
+      </div>
+      <textarea class="form-control-static" rows="1" style="width:100%;resize:none" id="shareViewOutput" readonly></textarea>
     </div>
 
   </div>
@@ -668,7 +723,7 @@
           </tr>
           <tr>
             <td>
-              <button type="button" class="btn btn-primary btn-block">Share View</button>
+              <button type="button" class="btn btn-primary btn-block" onclick="shareView();">Share View</button>
             </td>
             <td>
               <button type="button" class="btn btn-primary btn-block">Share History</button>
