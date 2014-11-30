@@ -14,9 +14,11 @@ app.use('/data', express.static(__dirname + '/data', { maxAge: oneHour}));
 
 var oneHour = 3600000;
 
-app.get('/', function(request, response) {
-  var buffer = fs.readFileSync('html/index.html');
-  response.send(buffer.toString());
+app.get('/', function (req, res) {
+  fs.readFile('html/index.html', function (err, buffer) {
+    if (err) throw err;
+    res.send(buffer.toString());
+  });
 });
 
 
@@ -35,17 +37,22 @@ app.post('/createShareView', function (req, res) {
 
 // share (read): receive a file hash, read the content from share folder and return it
 app.post('/loadShareView', function (req, res) {
-  var buffer = fs.readFileSync('shares/'+req.body.uid);
-  var obj = JSON.parse(buffer.toString());
+  fs.readFile('shares/'+req.body.uid, function (err, buffer) {
+    if (err) {
+      res.send('');
+    } else {
+      var obj = JSON.parse(buffer.toString());
 
-  // make necessary changes to the share file
-  obj.count++;
-  var fout = fs.createWriteStream('shares/' + obj.uid);
-  fout.write(JSON.stringify(obj));
-  fout.close();
-  
-  // send info to client
-  res.send(JSON.stringify(obj));
+      // make necessary changes to the share file
+      obj.count++;
+      var fout = fs.createWriteStream('shares/' + obj.uid);
+      fout.write(JSON.stringify(obj));
+      fout.close();
+
+      // send info to client
+      res.send(JSON.stringify(obj));
+    }
+  });
 });
 
 
