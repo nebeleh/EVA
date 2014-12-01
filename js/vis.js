@@ -759,11 +759,13 @@ function takeSnapshot() {
 
 function logStatus() {
 
+  var d = {type: "snapshot", snapshot: takeSnapshot()};
+
   $.ajax({
     url: '/logger', 
     type: 'POST', 
     contentType: 'application/json', 
-    data: JSON.stringify(takeSnapshot())}
+    data: JSON.stringify(d)}
     ); 
 }
 
@@ -793,6 +795,18 @@ function saveHistory(callback) {
   $('img').tooltip({'selector': '', 'placement': 'left', container: 'body', html: true});
 
   $('#' + snapshotID).attr('src', renderer.domElement.toDataURL());
+
+  if (experimentMode) {
+    var d = {type: "makeBookmark", snapshot: lastElement};
+
+    $.ajax({
+      url: '/logger', 
+      type: 'POST', 
+      contentType: 'application/json', 
+      data: JSON.stringify(d)}
+      );
+  }
+
   if (callback !== undefined) callback(null);
 }
 
@@ -883,6 +897,17 @@ function loadHistoryAsync(i, callback) {
   $('#inputPaletteMid').val(status.midColor);
   $('#inputPaletteMin').val(status.minColor);
   setPaletteLegend();
+
+  if (experimentMode) {
+    var d = {type: "loadBookmark", snapshot: status};
+
+    $.ajax({
+      url: '/logger', 
+      type: 'POST', 
+      contentType: 'application/json', 
+      data: JSON.stringify(d)}
+      );
+  }
 
   if (callback !== undefined) callback(null);
 }

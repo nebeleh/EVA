@@ -42,7 +42,7 @@
     [[255,255,204],[255,237,160],[254,217,118],[254,178,76],[253,141,60],[252,78,42],[227,26,28],[189,0,38],[128,0,38]]
     ];
     var x, y, z, r;
-    var dataLoaded = false, datasets = [];
+    var dataLoaded = false, datasets = [], experimentMode = false;
 
     $.urlParam = function(name){
         var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
@@ -234,6 +234,7 @@
       );
 
     logger = setInterval(function () {logStatus()}, 1000);
+    experimentMode = true;
 
     $('#experimentController').toggleClass('glyphicon-play').toggleClass('glyphicon-stop');
     $('#experimentButtonName').html(' Stop Experiment');
@@ -242,6 +243,8 @@
 
   function stopExperiment () {
     clearInterval(logger);
+
+    experimentMode = false;
 
     $('#experimentController').toggleClass('glyphicon-stop').toggleClass('glyphicon-play');
     $('#experimentButtonName').html(' Start Experiment');
