@@ -344,7 +344,7 @@
       var d = [];
 
       for (var i = 0; i < snapshotList.length; i++) {
-        if (!$('#snapshotID' + i + 'div').attr('class')) {
+        if ($('#snapshotID' + i + 'div').size() && !$('#snapshotID' + i + 'div').attr('class')) {
           d.push(snapshotList[i])
         }
       }
@@ -501,13 +501,23 @@
           }
           // this is a series of bookmarks
           else if (d.type == "history") {
+            // show loading bar
+            $('#loadHistoryAlert').removeClass('hidden');
+            $('#pageContent').append('<div id="historyoverlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
+            $('#historyProgressBar').css('width', '0%');
+
             snapshotList = [];
             var items = Array.apply(null, {length: d.snapshots.length}).map(Number.call, Number);
 
             async.eachSeries(items, function (item, callback) {
               snapshotList.push(d.snapshots[item]);
               loadHistoryThenBookmark(item, callback);
-            }, function (err) {});
+              $('#historyProgressBar').css('width', (100*(item+1)/items.length)+'%');
+            }, function (err) {
+              $('#loadHistoryAlert').addClass('hidden');
+              $('#historyProgressBar').css('width', '0%');
+              $('#historyoverlay').remove();
+            });
           }
         });
       };
@@ -524,6 +534,15 @@
       Loading data ...
       <div class="progress">
         <div id="dataProgressBar" class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+        </div>
+      </div>
+    </div>
+
+    <div id="loadHistoryAlert" class="alert alert-warning hidden">
+      <h4 class="alert-heading">Loading</h4>
+      Loading bookmarks ...
+      <div class="progress">
+        <div id="historyProgressBar" class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
         </div>
       </div>
     </div>
@@ -760,7 +779,7 @@
               <button type="button" class="btn btn-primary btn-block" onclick="saveSnapshotJson();$('#saveSnapshotToJSON').removeClass('hidden');">Save JSON</button>
             </td>
             <td>
-              <button type="button" id="loadViewButton" class="btn btn-primary btn-block" onclick="$('#loadSnapshotFromJSON').removeClass('hidden');">Load JSON</button>
+              <button type="button" id="loadViewButton" class="btn btn-primary btn-block" onclick="$('#historyJSONInput').val('');$('#loadSnapshotFromJSON').removeClass('hidden');$('#historyJSONInput').focus();">Load JSON</button>
             </td>
           </tr>
           <tr>
