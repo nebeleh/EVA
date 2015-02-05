@@ -20,6 +20,36 @@
   <script src="js/hashmap.js"></script>
   <script src="js/Detector.js"></script>
   <script src="js/async.js"></script>
+  <script type="x-shader/x-vertex" id="vertexshader">
+
+    uniform float pointSize;
+    uniform float scale;
+    
+    varying vec3 vColor;
+
+    attribute float opacity;
+    varying float vOpacity;
+
+    void main() {
+      vOpacity = opacity;
+      vColor = color;
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = pointSize * (scale / length(mvPosition.xyz));
+      gl_Position = projectionMatrix * mvPosition;
+    }
+
+  </script>
+  <script type="x-shader/x-fragment" id="fragmentshader">
+
+    varying vec3 vColor;
+    varying float vOpacity;
+
+    void main() {
+      if (vOpacity <= 0.0) discard;
+      gl_FragColor = vec4(vColor.rgb, vOpacity);
+    }
+
+  </script>
   <script>
     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -43,6 +73,7 @@
     ];
     var x, y, z, r;
     var dataLoaded = false, datasets = [], experimentMode = false;
+    var latencyStatus = false;
 
     $.urlParam = function(name){
         var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
@@ -576,6 +607,14 @@
           <button class="btn btn-default" type="button" onclick="if($('#userID').val()){$('#experimentParams').addClass('hidden');startExperiment($('#userID').val());}">Submit</button>
         </span>
       </div>
+      <form>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" id="checkboxLatency" onclick="latencyStatus = this.checked;">
+          Latency
+        </label>
+      </div>
+      </form>
     </div>
 
     <div id="experimentClose" class="panel panel-danger hidden">
@@ -931,6 +970,12 @@
             <label>
               <input type="checkbox" id="checkboxGridYZ" onclick="setGridYZ(this.checked);">
               Grid YZ Helper
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="checkboxMouseButtonState" onclick="setMouseButtonState(this.checked);" checked>
+              Left Click = Rotate
             </label>
           </div>
           <div class="checkbox">

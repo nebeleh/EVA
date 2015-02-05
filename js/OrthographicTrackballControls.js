@@ -74,6 +74,17 @@ THREE.OrthographicTrackballControls = function ( object, domElement ) {
 
 	// methods
 
+	this.changeState = function (leftclickRotate) {
+		if (leftclickRotate) {
+			STATE.ROTATE = 0;
+			STATE.PAN = 2;
+		} else {
+			STATE.ROTATE = 2;
+			STATE.PAN = 0;
+		}
+	}
+
+
 	this.handleResize = function () {
 
 		this.screen.width = window.innerWidth;

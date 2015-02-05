@@ -1,11 +1,15 @@
 var renderer, camera, cameraType, scene, controls, stats, axisHelper, sceneCSS, rendererCSS, cssObject, frames, planeMesh;
-var VIEW_ANGLE = 50, NEAR = 1, FAR = 100000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
+var attributes, uniforms;
+var VIEW_ANGLE = 50, NEAR = 0.1, FAR = 100000, ORTHONEAR = -100, ORTHOFAR = 1000, ORTHOSCALE = 100;
 var particleSystem, totalParticles, particleMaterial, currFrame = 0, colorPalette;
 var datapoints, mapping, normalizingScale = 10, dimensions, byteSchema, byteOffsets, metaData;
 var X = 100, Y = 100, Z = 100, R = 0.05;
 var lastTime = -1, currTime, playMode = true;
 var mapScaleLat, mapScalelng;
 var snapshotList;
+var downloadSpeed = 2; // in Mbps
+var searchSpace = 100000; // how many particles to search for at each step
+var lastRenderTimestamp = -1;
 
 var pi_180 = Math.PI / 180.0;
 var pi_4 = Math.PI * 4;
@@ -120,6 +124,18 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
 
   totalParticles = metaData.totalRows;
   datapoints = new DataView(rawdata);
+
+  // randomize all rows, so the gradual revealing becomes less biased.
+  // NOTE: not required anymore as I've done it on the server side
+  /*for (var i = 0; i < totalParticles; i++) {
+    var k = Math.floor(Math.random() * totalParticles) % totalParticles;
+    var t;
+    for (var j = 0; j < offset; j++) {
+      t = datapoints.getInt8(i*offset+j, true);
+      datapoints.setInt8(i*offset+j, datapoints.getInt8(k*offset+j, true), true);
+      datapoints.setInt8(k*offset+j, t, true);
+    }
+  }*/
 
   // convert lat, long to x, y
   var mapWidth, mapHeight;
@@ -326,6 +342,8 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
   for (var f = 0; f < frames.frameno; f++) {
     frames.frame.push({});
     frames.frame[f].particles = 0;
+    frames.frame[f].revealed = 0;
+    frames.frame[f].currentSearchIndex = 0;
     frames.frame[f].minValue = (frames.frameno > 1) ? Number.MAX_VALUE : NaN;
     frames.frame[f].maxValue = (frames.frameno > 1) ? -Number.MAX_VALUE : NaN;
   }
@@ -351,6 +369,7 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       frames.frame[f].geometry = new THREE.BufferGeometry();
       frames.frame[f].positions = new Float32Array(frames.frame[f].particles * 3);
       frames.frame[f].colors = new Float32Array(frames.frame[f].particles * 3);
+      frames.frame[f].opacities = new Float32Array(frames.frame[f].particles);
 
       frames.frame[f].j = -1;
     }
@@ -377,8 +396,16 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
       positions[j*3+1] = (mapping.y != -1) ? aggregator(i, mapping.y, 0, normalizingScale) : 0;
       positions[j*3+2] = (mapping.z != -1) ? aggregator(i, mapping.z, 0, normalizingScale) : 0;
 
+      // set opacity
+      var opacities = frames.frame[frameIndex].opacities;
+      if (latencyStatus)
+        opacities[j] = 0.0; // start everything invisible. then load points gradually
+      else
+        opacities[j] = 0.9;
+
       // set colors
       if (mapping.c == -1) continue;
+
       dummy = aggregator(i, mapping.c, 0, 1);
       if (isNaN(dummy)) {
         positions[j*3] = NaN;
@@ -394,10 +421,28 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
     for (var f = 0; f < frames.frameno; f++) {
       frames.frame[f].geometry.addAttribute( 'position', new THREE.BufferAttribute(frames.frame[f].positions, 3));
       frames.frame[f].geometry.addAttribute( 'color', new THREE.BufferAttribute(frames.frame[f].colors, 3));
+      frames.frame[f].geometry.addAttribute( 'opacity', new THREE.BufferAttribute(frames.frame[f].opacities, 1));
       frames.frame[f].geometry.computeBoundingBox();
     }
 
-    particleMaterial = new THREE.PointCloudMaterial({transparent: true, size: R, vertexColors: true, opacity: 0.9});
+    attributes = {
+      opacity: {type: 'f', value: []}
+    };
+
+    uniforms = {
+      pointSize: {type: 'f', value: R},
+      scale: {type: 'f', value: window.innerHeight / 2.0},
+    };
+
+    particleMaterial = new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      attributes: attributes,
+      vertexShader: $('#vertexshader').text(),
+      fragmentShader: $('#fragmentshader').text(),
+      vertexColors: true,
+      transparent: true
+    });
+
     updateParticleSystem(currFrame);
   }
   lastTime = Date.now();
@@ -406,11 +451,14 @@ function initialDraw(Mapping, uX, uY, uZ, uR)
 
 function updateParticleSystem(frameIndex) {
   scene.remove(particleSystem);
+
   particleSystem = new THREE.PointCloud(frames.frame[frameIndex].geometry, particleMaterial);
+
   particleSystem.scale.x = X / normalizingScale;
   particleSystem.scale.y = Y / normalizingScale;
   particleSystem.scale.z = Z / normalizingScale;
-  particleSystem.material.size = R;
+  uniforms.pointSize.value = R;
+
   scene.add(particleSystem);
 }
 
@@ -424,12 +472,12 @@ function updateDraw(uX, uY, uZ, uR)
     particleSystem.scale.x = X / normalizingScale;
     particleSystem.scale.y = Y / normalizingScale;
     particleSystem.scale.z = Z / normalizingScale;
-    particleSystem.material.size = R;
+    uniforms.pointSize.value = R;
   }
 }
 
 function updateInfo() {
-  //$('#eventsindicator').text((frames && frames.frame) ? frames.frame[currFrame].particles : '0');
+  // to show number of particles on the screen, use frames.frame[currFrame].particles
   $('#Tindicator').text((frames && frames.frameno > 1 && !(mapping.x == -1 && mapping.y == -1 && mapping.z == -1) && frames.frame[currFrame].particles > 0) ? '(' + (frames.frame[currFrame].minValue.toFixed(0) + ' - ' + frames.frame[currFrame].maxValue.toFixed(0) + ')') : '');
 }
 
@@ -438,6 +486,7 @@ function calcWindowResize(rend, camera)
   var callback = function(){
     var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
     rend.setSize(WIDTH, HEIGHT);
+
     if (camera instanceof THREE.PerspectiveCamera)
     {
       camera.aspect = WIDTH/HEIGHT;
@@ -448,11 +497,15 @@ function calcWindowResize(rend, camera)
       camera.bottom = - HEIGHT/ORTHOSCALE;
     }
     camera.updateProjectionMatrix();
+
+    // required for correctly scaling size of points in the point cloud
+    if (uniforms) uniforms.scale.value = window.innerHeight / 2.0;
   }
-  window.addEventListener('resize',callback,false);
+
+  window.addEventListener('resize', callback, false);
   return {
-    stop : function(){
-      window.removeEventListener('resize',callback);
+    stop : function() {
+      window.removeEventListener('resize', callback);
     }
   };
 }
@@ -479,6 +532,66 @@ function updateFrame() {
     $('#tSlider').slider('setValue', $('#tSlider').attr('data-slider-min'));
   }
   //$('#frameNumber').text(frames ? (currFrame+1) + '/' + frames.frameno : 'none');
+
+  // update opacities
+  if (latencyStatus && particleSystem) {
+
+    var fps = 60;
+    if (lastRenderTimestamp == -1) {
+      lastRenderTimestamp = Date.now();
+    } else {
+      fps = 1000. / (Date.now() - lastRenderTimestamp);
+      lastRenderTimestamp = Date.now();
+    }
+    var revealThisStep = Math.floor(downloadSpeed * 1000000 / (8 * fps * byteOffsets[byteOffsets.length-1]));
+
+    var existingParticles = frames.frame[currFrame].particles;
+    var particlesRevealed = frames.frame[currFrame].revealed;
+    var frameSearchSpace = Math.min(searchSpace, existingParticles);
+
+    // if there are hidden particles, then ...
+    if (particlesRevealed < existingParticles) {
+      var opacities = particleSystem.geometry.attributes.opacity.array;
+      var positions = particleSystem.geometry.attributes.position.array;
+      var candidatesIn = [], candidatesOut = [];
+      var sx = particleSystem.scale.x, sy = particleSystem.scale.y, sz = particleSystem.scale.z;
+      var frustum = new THREE.Frustum;
+      frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+
+      // start from a random particle, search for a while and select a subset of them
+      var i, j;
+      for (i = frames.frame[currFrame].currentSearchIndex, j = 0; j < frameSearchSpace; i = (i + 1) % existingParticles, j++) {
+        if (candidatesIn.length == revealThisStep) break;
+
+        if (opacities[i] == 0) {
+          if (frustum.containsPoint(new THREE.Vector3(positions[3 * i] * sx, positions[3 * i + 1] * sy, positions[3 * i + 2] * sz))) {
+            if (candidatesIn.length < revealThisStep) {
+              candidatesIn.push(i);
+            }
+          } else {
+            if (candidatesOut.length < revealThisStep) {
+              candidatesOut.push(i);
+            }
+          }  
+        }
+      }
+
+      // reveal selected points with a priority on points in the field of view
+      for (var p = 0; p < candidatesIn.length; p++) {
+        opacities[candidatesIn[p]] = 0.9;
+        particlesRevealed++;
+      }
+
+      for (var q = candidatesIn.length; q < candidatesOut.length; q++) {
+        opacities[candidatesOut[q]] = 0.9;
+        particlesRevealed++;
+      }
+
+      particleSystem.geometry.attributes.opacity.needsUpdate = true;
+      frames.frame[currFrame].revealed = particlesRevealed;
+      frames.frame[currFrame].currentSearchIndex = i;
+    }
+  }
 }
 
 
@@ -563,6 +676,7 @@ function setCameraType(type, Pos, Rot, Up, Side, Cnt)
   controls.noPan = false;
   controls.staticMoving = false;
   controls.dynamicDampingFactor = 0.3;
+  controls.changeState($("#checkboxMouseButtonState").is(':checked'));
 }
 
 function setTimeController(initialCall) {
@@ -695,6 +809,16 @@ function setGeoLayer(s) {
   }
 }
 
+function setMouseButtonState (s) {
+  if (s) {
+    $("#checkboxMouseButtonState").prop("checked", true);
+    controls.changeState(true);
+  } else {
+    $("#checkboxMouseButtonState").prop("checked", false);
+    controls.changeState(false);
+  }
+}
+
 function setStatLayer (s) {
   if (s) {
     $("#checkboxStat").prop("checked", true);
@@ -753,6 +877,7 @@ function takeSnapshot() {
   status.control = {x: controls.target.x, y: controls.target.y, z: controls.target.z}; // for saving pan movements
 
   status.currentFrame = currFrame;
+  status.latencyStatus = latencyStatus;
 
   return status;
 }
@@ -897,6 +1022,9 @@ function loadHistoryAsync(i, callback) {
   $('#inputPaletteMid').val(status.midColor);
   $('#inputPaletteMin').val(status.minColor);
   setPaletteLegend();
+
+  latencyStatus = status.latencyStatus;
+  $("#checkboxLatency").prop("checked", latencyStatus);
 
   if (experimentMode) {
     var d = {type: "loadBookmark", snapshot: status};
