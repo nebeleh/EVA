@@ -20,6 +20,36 @@
   <script src="js/hashmap.js"></script>
   <script src="js/Detector.js"></script>
   <script src="js/async.js"></script>
+  <script type="x-shader/x-vertex" id="vertexshader">
+
+    uniform float pointSize;
+    uniform float scale;
+    
+    varying vec3 vColor;
+
+    attribute float opacity;
+    varying float vOpacity;
+
+    void main() {
+      vOpacity = opacity;
+      vColor = color;
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = pointSize * (scale / length(mvPosition.xyz));
+      gl_Position = projectionMatrix * mvPosition;
+    }
+
+  </script>
+  <script type="x-shader/x-fragment" id="fragmentshader">
+
+    varying vec3 vColor;
+    varying float vOpacity;
+
+    void main() {
+      if (vOpacity <= 0.0) discard;
+      gl_FragColor = vec4(vColor.rgb, vOpacity);
+    }
+
+  </script>
   <script>
 
     var mapping = {x: -1, y: -1, z: -1, c: -1, t: -1, p: 0};
@@ -35,7 +65,8 @@
     [[255,255,204],[255,237,160],[254,217,118],[254,178,76],[253,141,60],[252,78,42],[227,26,28],[189,0,38],[128,0,38]]
     ];
     var x, y, z, r;
-    var dataLoaded = false, datasets = [];
+    var dataLoaded = false, datasets = [], experimentMode = false;
+    var latencyStatus = false;
 
     $.urlParam = function(name) {
       var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
@@ -226,6 +257,7 @@
         );
 
       logger = setInterval(function () {logStatus()}, 1000);
+      experimentMode = true;
 
       $('#experimentController').toggleClass('glyphicon-play').toggleClass('glyphicon-stop');
       $('#experimentButtonName').html(' Stop Experiment');
@@ -234,6 +266,8 @@
 
     function stopExperiment () {
       clearInterval(logger);
+
+      experimentMode = false;
 
       $('#experimentController').toggleClass('glyphicon-stop').toggleClass('glyphicon-play');
       $('#experimentButtonName').html(' Start Experiment');
@@ -565,6 +599,14 @@
           <button class="btn btn-default" type="button" onclick="if($('#userID').val()){$('#experimentParams').addClass('hidden');startExperiment($('#userID').val());}">Submit</button>
         </span>
       </div>
+      <form>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" id="checkboxLatency" onclick="latencyStatus = this.checked;">
+          Latency
+        </label>
+      </div>
+      </form>
     </div>
 
     <div id="experimentClose" class="panel panel-danger hidden">
@@ -773,7 +815,7 @@
         <div id="historyList">
         </div>
         <hr />
-        <table class="table tablenoborder">
+        <table class="table tablenoborder hidden">
           <tr>
             <td>
               <button type="button" class="btn btn-primary btn-block" onclick="saveSnapshotJson();$('#saveSnapshotToJSON').removeClass('hidden');">Save JSON</button>
@@ -793,7 +835,7 @@
         </table>
       </div>
 
-      <div class="panel panel-primary hidden">
+      <div class="panel panel-primary">
         <div class="panel-heading">
           <h3 class="panel-title">Experiment</h3>
         </div>
@@ -920,6 +962,12 @@
             <label>
               <input type="checkbox" id="checkboxGridYZ" onclick="setGridYZ(this.checked);">
               Grid YZ Helper
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="checkboxMouseButtonState" onclick="setMouseButtonState(this.checked);" checked>
+              Left Click = Rotate
             </label>
           </div>
           <div class="checkbox">
