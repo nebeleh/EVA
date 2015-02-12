@@ -7,7 +7,7 @@ var X = 100, Y = 100, Z = 100, R = 0.05;
 var lastTime = -1, currTime, playMode = true;
 var mapScaleLat, mapScalelng;
 var snapshotList;
-var downloadSpeed = 2; // in Mbps
+var downloadSpeed = 6; // in Mbps
 var searchSpace = 100000; // how many particles to search for at each step
 var lastRenderTimestamp = -1;
 
@@ -543,53 +543,55 @@ function updateFrame() {
       fps = 1000. / (Date.now() - lastRenderTimestamp);
       lastRenderTimestamp = Date.now();
     }
-    var revealThisStep = Math.floor(downloadSpeed * 1000000 / (8 * fps * byteOffsets[byteOffsets.length-1]));
+    var revealThisStep = Math.floor(downloadSpeed * 1000000 / (8 * fps * byteOffsets[byteOffsets.length-1] * frames.frameno));
 
-    var existingParticles = frames.frame[currFrame].particles;
-    var particlesRevealed = frames.frame[currFrame].revealed;
-    var frameSearchSpace = Math.min(searchSpace, existingParticles);
+    for (var f = 0; f < frames.frameno; f++) {
+      var existingParticles = frames.frame[f].particles;
+      var particlesRevealed = frames.frame[f].revealed;
+      var frameSearchSpace = Math.min(searchSpace, existingParticles);
 
-    // if there are hidden particles, then ...
-    if (particlesRevealed < existingParticles) {
-      var opacities = particleSystem.geometry.attributes.opacity.array;
-      var positions = particleSystem.geometry.attributes.position.array;
-      var candidatesIn = [], candidatesOut = [];
-      var sx = particleSystem.scale.x, sy = particleSystem.scale.y, sz = particleSystem.scale.z;
-      var frustum = new THREE.Frustum;
-      frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+      // if there are hidden particles, then ...
+      if (particlesRevealed < existingParticles) {
+        var opacities = frames.frame[f].opacities;
+        var positions = frames.frame[f].positions;
+        var candidatesIn = [], candidatesOut = [];
+        var sx = particleSystem.scale.x, sy = particleSystem.scale.y, sz = particleSystem.scale.z;
+        var frustum = new THREE.Frustum;
+        frustum.setFromMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
 
-      // start from a random particle, search for a while and select a subset of them
-      var i, j;
-      for (i = frames.frame[currFrame].currentSearchIndex, j = 0; j < frameSearchSpace; i = (i + 1) % existingParticles, j++) {
-        if (candidatesIn.length == revealThisStep) break;
+        // start from a random particle, search for a while and select a subset of them
+        var i, j;
+        for (i = frames.frame[f].currentSearchIndex, j = 0; j < frameSearchSpace; i = (i + 1) % existingParticles, j++) {
+          if (candidatesIn.length == revealThisStep) break;
 
-        if (opacities[i] == 0) {
-          if (frustum.containsPoint(new THREE.Vector3(positions[3 * i] * sx, positions[3 * i + 1] * sy, positions[3 * i + 2] * sz))) {
-            if (candidatesIn.length < revealThisStep) {
-              candidatesIn.push(i);
+          if (opacities[i] == 0) {
+            if (frustum.containsPoint(new THREE.Vector3(positions[3 * i] * sx, positions[3 * i + 1] * sy, positions[3 * i + 2] * sz))) {
+              if (candidatesIn.length < revealThisStep) {
+                candidatesIn.push(i);
+              }
+            } else {
+              if (candidatesOut.length < revealThisStep) {
+                candidatesOut.push(i);
+              }
             }
-          } else {
-            if (candidatesOut.length < revealThisStep) {
-              candidatesOut.push(i);
-            }
-          }  
+          }
         }
-      }
 
-      // reveal selected points with a priority on points in the field of view
-      for (var p = 0; p < candidatesIn.length; p++) {
-        opacities[candidatesIn[p]] = 0.9;
-        particlesRevealed++;
-      }
+        // reveal selected points with a priority on points in the field of view
+        for (var p = 0; p < candidatesIn.length; p++) {
+          opacities[candidatesIn[p]] = 0.9;
+          particlesRevealed++;
+        }
 
-      for (var q = candidatesIn.length; q < candidatesOut.length; q++) {
-        opacities[candidatesOut[q]] = 0.9;
-        particlesRevealed++;
-      }
+        for (var q = candidatesIn.length; q < candidatesOut.length; q++) {
+          opacities[candidatesOut[q]] = 0.9;
+          particlesRevealed++;
+        }
 
-      particleSystem.geometry.attributes.opacity.needsUpdate = true;
-      frames.frame[currFrame].revealed = particlesRevealed;
-      frames.frame[currFrame].currentSearchIndex = i;
+        if (f == currFrame) particleSystem.geometry.attributes.opacity.needsUpdate = true;
+        frames.frame[f].revealed = particlesRevealed;
+        frames.frame[f].currentSearchIndex = i;
+      }
     }
   }
 }
