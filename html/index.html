@@ -87,9 +87,9 @@
       var pr = $('#inputPaletteMax');
       if (pr.val() == "") pr.val(1);
       var pm = $('#inputPaletteMid');
-      if (pm.val() == "") pm.val(0);
+      if (pm.val() == "") pm.val(0.5);
       var pl = $('#inputPaletteMin');
-      if (pl.val() == "") pl.val(-1);
+      if (pl.val() == "") pl.val(0);
       if (parseFloat(pm.val()) > parseFloat(pr.val())) pm.val(pr.val());
       if (parseFloat(pl.val()) > parseFloat(pm.val())) pl.val(pm.val());
       setPaletteRangesVIS(pl.val(), pm.val(), pr.val());
@@ -295,9 +295,9 @@
       mapping.p = 0;
 
       $('#inputPaletteMax').val(1);
-      $('#inputPaletteMid').val(0);
-      $('#inputPaletteMin').val(-1);
-      setPaletteRangesVIS(-1, 0, 1);
+      $('#inputPaletteMid').val(0.5);
+      $('#inputPaletteMin').val(0);
+      setPaletteRangesVIS(0, 0.5, 1);
       setPaletteLegend();
 
       snapshotList = snapshotList || [];
@@ -481,8 +481,8 @@
 
       // set color palette
       $('#inputPaletteMax').val(1);
-      $('#inputPaletteMid').val(0);
-      $('#inputPaletteMin').val(-1);
+      $('#inputPaletteMid').val(0.5);
+      $('#inputPaletteMin').val(0);
       var tempPalette = [];
       for (var p = 0; p < colorPalette.length; p++) {
         tempPalette.push(JSON.parse(JSON.stringify(colorPalette[p])));
@@ -559,7 +559,7 @@
 
 </script>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
   <div id="params5">
 
@@ -863,7 +863,7 @@
             <td>
               <div class="input-group">
                 <b>Mid: </b>
-                <input style="width:70px" type="number" class="form-control" id="inputPaletteMid" value="0" step="0.1">
+                <input style="width:70px" type="number" class="form-control" id="inputPaletteMid" value="0.5" step="0.1">
               </div>
             </td>
           </tr>
@@ -871,7 +871,7 @@
             <td>
               <div class="input-group">
                 <b>Min: </b>
-                <input style="width:70px" type="number" class="form-control" id="inputPaletteMin" value="-1" step="0.1">
+                <input style="width:70px" type="number" class="form-control" id="inputPaletteMin" value="0" step="0.1">
               </div>
             </td>
           </tr>

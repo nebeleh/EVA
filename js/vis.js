@@ -40,8 +40,8 @@ function writeData(row, col, value) {
 }
 
 // interpolate the color of each data point using the selected color palette
-var minC = -1;
-var midC = 0;
+var minC = 0;
+var midC = 0.5;
 var maxC = 1;
 
 function palette2color(x, i) {
@@ -267,6 +267,7 @@ function init($container, $stat, rawdata, MetaData, cPalette) {
   // camera
   cameraType = "perspective";
   setCameraType("perspective");
+  setControls();
   scene.add(camera);
 
   // lights
@@ -625,7 +626,7 @@ function animate()
   rendererCSS.render(sceneCSS, camera);
 }
 
-function setCameraType(type, Pos, Rot, Up, Side, Cnt)
+function setCameraType(type, Pos, Rot, Up, Side)
 {
   var WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
   var x = -100, y = -100, z = 100;
@@ -634,13 +635,11 @@ function setCameraType(type, Pos, Rot, Up, Side, Cnt)
   {
     camera = new THREE.PerspectiveCamera(VIEW_ANGLE, WIDTH/HEIGHT, NEAR, FAR);
     cameraType = "perspective";
-    controls = new THREE.TrackballControls(camera, renderer.domElement);
   }
   else
   {
     camera = new THREE.OrthographicCamera(-WIDTH/ORTHOSCALE, WIDTH/ORTHOSCALE, HEIGHT/ORTHOSCALE, -HEIGHT/ORTHOSCALE, ORTHONEAR, ORTHOFAR);
     cameraType = "orthographic";
-    controls = new THREE.OrthographicTrackballControls (camera, renderer.domElement);
   }
 
   if (Pos !== undefined) {
@@ -648,10 +647,9 @@ function setCameraType(type, Pos, Rot, Up, Side, Cnt)
   } else {
     camera.position.set(x, y, z);  
   }
-  
 
   // set camera rotation
-  if (Rot !== undefined && Up !== undefined && Side !== undefined && Cnt !== undefined) {
+  if (Rot !== undefined && Up !== undefined && Side !== undefined) {
     camera.rotation.set(Rot.x, Rot.y, Rot.z);
     camera.up.set(Up.x, Up.y, Up.z);
     if (type === "orthographic") {
@@ -660,18 +658,33 @@ function setCameraType(type, Pos, Rot, Up, Side, Cnt)
       camera.bottom = Side.b;
       camera.right = Side.r;
     }
-    controls.target.set(Cnt.x, Cnt.y, Cnt.z);
   } else {
-    camera.lookAt(scene.position);
     if (x == 0 && y == 0)
-      camera.up = new THREE.Vector3(0, 1, 0);
+      camera.up.set(0, 1, 0);
     else
-      camera.up = new THREE.Vector3(0, 0, 1);    
+      camera.up.set(0, 0, 1);    
+    camera.lookAt(scene.position.clone());
   }
+  camera.updateProjectionMatrix();
 
   // events
   calcWindowResize(renderer, camera);
   calcWindowResize(rendererCSS, camera);
+}
+
+function setControls(Cnt) {
+  if (cameraType === "perspective")
+  {
+    controls = new THREE.TrackballControls(camera, renderer.domElement);
+  }
+  else
+  {
+    controls = new THREE.OrthographicTrackballControls (camera, renderer.domElement);
+  }
+
+  if (Cnt !== undefined) {
+    controls.target.set(Cnt.x, Cnt.y, Cnt.z);
+  }
 
   // controls
   controls.noZoom = false;
@@ -710,47 +723,173 @@ function setTimeController(initialCall) {
 
 function setCameraZ()
 {
-  var z = 100;
-  if (camera)
-    z = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
-  setCameraType(cameraType);
-  camera.position.set(0, 0, z);
-  camera.up = new THREE.Vector3(0, 1, 0);
-  camera.lookAt(scene.position);
+  if (!camera) return;
+
+  var cameraBaseVector = new THREE.Vector3(0, 0, -1);
+  cameraBaseVector.applyQuaternion(camera.quaternion);
+
+  var cameraRay = new THREE.Ray(camera.position, cameraBaseVector);
+  var projectionPlane = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
+  var intersectionPoint = cameraRay.intersectPlane(projectionPlane);
+  
+  var z = camera.position.z;
+  if (intersectionPoint) {
+    z = Math.sqrt(Math.pow(camera.position.x - intersectionPoint.x, 2) + Math.pow(camera.position.y - intersectionPoint.y, 2) + Math.pow(camera.position.z - intersectionPoint.z, 2));
+    if (camera.position.z < 0) z *= -1;
+  }
+  
+  if (!intersectionPoint || Math.abs(intersectionPoint.x) > 100 || Math.abs(intersectionPoint.y) > 100 || Math.abs(intersectionPoint.z) > 100) {
+    camera.position.set(0, 0, 100);
+    camera.up.set(0, 1, 0);
+    camera.lookAt(new THREE.Vector3(0,0,0));
+    setControls();
+  } else {
+    camera.position.set(intersectionPoint.x, intersectionPoint.y, z);
+    camera.up.set(0, 1, 0);
+    camera.lookAt(new THREE.Vector3(intersectionPoint.x, intersectionPoint.y, 0));
+    setControls(new THREE.Vector3(intersectionPoint.x, intersectionPoint.y, 0));
+  }  
 }
 
 function setCameraY()
 {
-  var y = 100;
-  if (camera)
-    y = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
-  setCameraType(cameraType);
-  camera.position.set(0, y, 0);
-  camera.up = new THREE.Vector3(0, 0, 1);
-  camera.lookAt(scene.position);
+  if (!camera) return;
+
+  var cameraBaseVector = new THREE.Vector3(0, 0, -1);
+  cameraBaseVector.applyQuaternion(camera.quaternion);
+
+  var cameraRay = new THREE.Ray(camera.position, cameraBaseVector);
+  var projectionPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+  var intersectionPoint = cameraRay.intersectPlane(projectionPlane);
+  
+  var y = camera.position.y;
+  if (intersectionPoint) {
+    y = Math.sqrt(Math.pow(camera.position.x - intersectionPoint.x, 2) + Math.pow(camera.position.y - intersectionPoint.y, 2) + Math.pow(camera.position.z - intersectionPoint.z, 2));
+    if (camera.position.y < 0) y *= -1;
+  }
+  
+  if (!intersectionPoint || Math.abs(intersectionPoint.x) > 100 || Math.abs(intersectionPoint.y) > 100 || Math.abs(intersectionPoint.z) > 100) {
+    camera.position.set(0, 100, 0);
+    camera.up.set(0, 0, 1);
+    camera.lookAt(new THREE.Vector3(0,0,0));
+    setControls();
+  } else {
+    camera.position.set(intersectionPoint.x, y, intersectionPoint.z);
+    camera.up.set(0, 0, 1);
+    camera.lookAt(new THREE.Vector3(intersectionPoint.x, 0, intersectionPoint.z));
+    setControls(new THREE.Vector3(intersectionPoint.x, 0, intersectionPoint.z));
+  }  
 }
 
 function setCameraX()
 {
-  var x = 100;
-  if (camera)
-    x = Math.sqrt(Math.pow(camera.position.x, 2) + Math.pow(camera.position.y, 2) + Math.pow(camera.position.z, 2)) ;
-  setCameraType(cameraType);
-  camera.position.set(x, 0, 0);
-  camera.up = new THREE.Vector3(0, 0, 1);
-  camera.lookAt(scene.position);
+  if (!camera) return;
+
+  var cameraBaseVector = new THREE.Vector3(0, 0, -1);
+  cameraBaseVector.applyQuaternion(camera.quaternion);
+
+  var cameraRay = new THREE.Ray(camera.position, cameraBaseVector);
+  var projectionPlane = new THREE.Plane(new THREE.Vector3(1,0,0), 0);
+  var intersectionPoint = cameraRay.intersectPlane(projectionPlane);
+  
+  var x = camera.position.x;
+  if (intersectionPoint) {
+    x = Math.sqrt(Math.pow(camera.position.x - intersectionPoint.x, 2) + Math.pow(camera.position.y - intersectionPoint.y, 2) + Math.pow(camera.position.z - intersectionPoint.z, 2));
+    if (camera.position.x < 0) x *= -1;
+  }
+  
+  if (!intersectionPoint || Math.abs(intersectionPoint.x) > 100 || Math.abs(intersectionPoint.y) > 100 || Math.abs(intersectionPoint.z) > 100) {
+    camera.position.set(100, 0, 0);
+    camera.up.set(0, 0, 1);
+    camera.lookAt(new THREE.Vector3(0,0,0));
+    setControls();
+  } else {
+    camera.position.set(x, intersectionPoint.y, intersectionPoint.z);
+    camera.up.set(0, 0, 1);
+    camera.lookAt(new THREE.Vector3(0, intersectionPoint.y, intersectionPoint.z));
+    setControls(new THREE.Vector3(0, intersectionPoint.y, intersectionPoint.z));
+  }
 }
 
 function setAxisHelper(s)
 {
   if(s) {
     $("#checkboxAxisHelper").prop("checked", true);
-    axisHelper = new THREE.AxisHelper();
+    if (axisHelper) scene.remove(axisHelper);
+
+    axisHelper = new THREE.Group();
+
+    var axisLines = new THREE.AxisHelper(100);
+    axisHelper.add(axisLines);
+
+    var spritex = makeTextSprite( " X ", { fontsize: 38, borderColor: {r:255, g:0, b:0, a:1.0}, backgroundColor: {r:255, g:100, b:100, a:0.8} } );
+    spritex.position.set(105,-5,0);
+    axisHelper.add(spritex);
+
+    var spritey = makeTextSprite( " Y ", { fontsize: 38, borderColor: {r:0, g:255, b:0, a:1.0}, backgroundColor: {r:100, g:255, b:100, a:0.8} } );
+    spritey.position.set(5,105,0);
+    axisHelper.add(spritey);
+
+    var spritez = makeTextSprite( " Z ", { fontsize: 38, borderColor: {r:0, g:0, b:255, a:1.0}, backgroundColor: {r:100, g:100, b:255, a:0.8} } );
+    spritez.position.set(5,5,105);
+    axisHelper.add(spritez);
+
     scene.add(axisHelper);
   } else {
     $("#checkboxAxisHelper").prop("checked", false);
     scene.remove(axisHelper);
   }
+}
+
+function makeTextSprite( message, parameters )
+{
+  if ( parameters === undefined ) parameters = {};
+  var fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "Arial";
+  var fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 18;
+  var borderThickness = parameters.hasOwnProperty("borderThickness") ? parameters["borderThickness"] : 4;
+  var borderColor = parameters.hasOwnProperty("borderColor") ?parameters["borderColor"] : { r:0, g:0, b:0, a:1.0 };
+  var backgroundColor = parameters.hasOwnProperty("backgroundColor") ?parameters["backgroundColor"] : { r:255, g:255, b:255, a:1.0 };
+  var textColor = parameters.hasOwnProperty("textColor") ?parameters["textColor"] : { r:0, g:0, b:0, a:1.0 };
+
+  var canvas = document.createElement('canvas');
+  var context = canvas.getContext('2d');
+  context.font = "Bold " + fontsize + "px " + fontface;
+  var metrics = context.measureText( message );
+  var textWidth = metrics.width;
+
+  context.fillStyle   = "rgba(" + backgroundColor.r + "," + backgroundColor.g + "," + backgroundColor.b + "," + backgroundColor.a + ")";
+  context.strokeStyle = "rgba(" + borderColor.r + "," + borderColor.g + "," + borderColor.b + "," + borderColor.a + ")";
+
+  context.lineWidth = borderThickness;
+  roundRect(context, borderThickness/2, borderThickness/2, (textWidth + borderThickness) * 1.1, fontsize * 1.4 + borderThickness, 8);
+
+  context.fillStyle = "rgba("+textColor.r+", "+textColor.g+", "+textColor.b+", 1.0)";
+  context.fillText( message, borderThickness, fontsize + borderThickness);
+
+  var texture = new THREE.Texture(canvas) 
+  texture.needsUpdate = true;
+
+  var spriteMaterial = new THREE.SpriteMaterial( { map: texture, useScreenCoordinates: false } );
+  var sprite = new THREE.Sprite( spriteMaterial );
+  sprite.scale.set(0.5 * fontsize, 0.25 * fontsize, 0.75 * fontsize);
+  return sprite;  
+}
+
+function roundRect(ctx, x, y, w, h, r) 
+{
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();   
 }
 
 var gridXY, gridXZ, gridYZ;
@@ -759,6 +898,7 @@ function setGridXY(s)
 {
   if(s) {
     $("#checkboxGridXY").prop("checked", true);
+    if (gridXY) scene.remove(gridXY);
     gridXY = new THREE.GridHelper(100, 10);
     gridXY.position.set(0, 0, 0);
     gridXY.rotation.x = Math.PI/2;
@@ -774,6 +914,7 @@ function setGridXZ(s)
 {
   if(s) {
     $("#checkboxGridXZ").prop("checked", true);
+    if (gridXZ) scene.remove(gridXZ);
     gridXZ = new THREE.GridHelper(100, 10);
     gridXZ.setColors( new THREE.Color(0xaa00aa), new THREE.Color(0xaa00aa) );
     gridXZ.position.set(0, 0, 0);
@@ -788,6 +929,7 @@ function setGridYZ(s)
 {
   if(s) {
     $("#checkboxGridYZ").prop("checked", true);
+    if (gridYZ) scene.remove(gridYZ);
     gridYZ = new THREE.GridHelper(100, 10);
     gridYZ.position.set(0, 0, 0);
     gridYZ.rotation.z = Math.PI/2;
@@ -1003,7 +1145,8 @@ function loadHistoryAsync(i, callback) {
   setGridYZ(status.yzHelper);
   setGeoLayer(status.geoHelper);
 
-  setCameraType(status.cameraType, status.cameraPosition, status.cameraRotation, status.cameraUp, status.cameraSide, status.control);
+  setCameraType(status.cameraType, status.cameraPosition, status.cameraRotation, status.cameraUp, status.cameraSide);
+  setControls(status.control);
 
   // update UI based on saved parameters
   changeDimensionName('xDimensionDropdown', metaData.columnNames[status.dimensionXIndex]);
