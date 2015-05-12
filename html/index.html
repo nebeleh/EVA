@@ -227,7 +227,7 @@
 
     var d = new Date();
     $.ajax({
-      url: '/setLogger', 
+      url: './setLogger', 
       type: 'POST', 
       contentType: 'application/json', 
       data: JSON.stringify({time: d.getTime(), user: userID})}
@@ -322,7 +322,7 @@
 
     // take a snapshot and send it to server and ask the server to create a new file in the share folder
     $.ajax({
-      url: '/createShareView', 
+      url: './createShareView', 
       type: 'POST', 
       contentType: 'application/json', 
       data: JSON.stringify(takeSnapshot())})
@@ -358,7 +358,7 @@
     }
 
     $.ajax({
-      url: '/createShareHistory',
+      url: './createShareHistory',
       type: 'POST', 
       contentType: 'application/json', 
       data: JSON.stringify(d)})
@@ -495,7 +495,7 @@
     // check if this is a shared link, then load the appropriate page
     if ($.urlParam('uid')) {
       $.ajax({
-        url: '/loadShareView', 
+        url: './loadShareView', 
         type: 'POST', 
         contentType: 'application/json', 
         data: JSON.stringify({'uid': $.urlParam('uid')})})
