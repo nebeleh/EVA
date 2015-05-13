@@ -490,45 +490,45 @@
         });
         jQuery(this).html(newHTML);
       });
-    });
 
-    // check if this is a shared link, then load the appropriate page
-    if ($.urlParam('uid')) {
-      $.ajax({
-        url: './loadShareView', 
-        type: 'POST', 
-        contentType: 'application/json', 
-        data: JSON.stringify({'uid': $.urlParam('uid')})})
-      // receive the hash from the server, create the shareable URL and show it to the user
-      .done(function (data) {
-        var d = JSON.parse(data);
+      // check if this is a shared link, then load the appropriate page
+      if ($.urlParam('uid')) {
+        $.ajax({
+          url: './loadShareView', 
+          type: 'POST', 
+          contentType: 'application/json', 
+          data: JSON.stringify({'uid': $.urlParam('uid')})})
+        // receive the hash from the server, create the shareable URL and show it to the user
+        .done(function (data) {
+          var d = JSON.parse(data);
 
-        // this is a single view
-        if (d.type == "view") {
-          loadSnapshotJson(JSON.stringify(d.snapshot));
-        }
-        // this is a series of bookmarks
-        else if (d.type == "history") {
-          // show loading bar
-          $('#loadHistoryAlert').removeClass('hidden');
-          $('#pageContent').append('<div id="historyoverlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
-          $('#historyProgressBar').css('width', '0%');
-
-          snapshotList = [];
-          var items = Array.apply(null, {length: d.snapshots.length}).map(Number.call, Number);
-
-          async.eachSeries(items, function (item, callback) {
-            snapshotList.push(d.snapshots[item]);
-            loadHistoryThenBookmark(item, callback);
-            $('#historyProgressBar').css('width', (100*(item+1)/items.length)+'%');
-          }, function (err) {
-            $('#loadHistoryAlert').addClass('hidden');
+          // this is a single view
+          if (d.type == "view") {
+            loadSnapshotJson(JSON.stringify(d.snapshot));
+          }
+          // this is a series of bookmarks
+          else if (d.type == "history") {
+            // show loading bar
+            $('#loadHistoryAlert').removeClass('hidden');
+            $('#pageContent').append('<div id="historyoverlay" style="opacity:0.5;background-color:grey;position:absolute;top:0;left:0;height:100%;width:100%;z-index:199"></div>');
             $('#historyProgressBar').css('width', '0%');
-            $('#historyoverlay').remove();
-          });
-        }
-      });
-    };
+
+            snapshotList = [];
+            var items = Array.apply(null, {length: d.snapshots.length}).map(Number.call, Number);
+
+            async.eachSeries(items, function (item, callback) {
+              snapshotList.push(d.snapshots[item]);
+              loadHistoryThenBookmark(item, callback);
+              $('#historyProgressBar').css('width', (100*(item+1)/items.length)+'%');
+            }, function (err) {
+              $('#loadHistoryAlert').addClass('hidden');
+              $('#historyProgressBar').css('width', '0%');
+              $('#historyoverlay').remove();
+            });
+          }
+        });
+      };
+    });
   });
 
 </script>
