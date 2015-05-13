@@ -329,7 +329,8 @@
     // receive the hash from the server, create the shareable URL and show it to the user
     .done(function (data) {
       $('#shareViewPopup').removeClass('hidden');
-      $('#shareViewOutput').val(location.protocol + "//" + location.host + '/?uid=' + data).focus().select();
+      var sp = window.location.href.split("?");
+      $('#shareViewOutput').val(sp[0].replace(/\/*#*$/, "") + '/?uid=' + data).focus().select();
     });
   }
 
@@ -365,7 +366,8 @@
     // receive the hash from the server, create the shareable URL and show it to the user
     .done(function (data) {
       $('#shareViewPopup').removeClass('hidden');
-      $('#shareViewOutput').val(location.protocol + "//" + location.host + '/?uid=' + data).focus().select();
+      var sp = window.location.href.split("?");
+      $('#shareViewOutput').val(sp[0].replace(/\/*#*$/, "") + '/?uid=' + data).focus().select();
     });
   }
 
